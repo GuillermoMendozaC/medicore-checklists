@@ -117,4 +117,15 @@ create policy "Ver perfil propio" on profiles for select using (id = auth.uid())
 create policy "Admins ven todos los perfiles" on profiles for select using (public.es_admin());
 create policy "actualizar perfil propio" on profiles for update using (id = auth.uid());
 
+-- Políticas de Storage: Permitir subida y lectura en el bucket 'checklist-media'
+create policy "Permitir subida a autenticados" on storage.objects
+  for insert
+  to authenticated
+  with check (bucket_id = 'checklist-media');
+
+create policy "Permitir lectura publica" on storage.objects
+  for select
+  using (bucket_id = 'checklist-media');
+
+
 
