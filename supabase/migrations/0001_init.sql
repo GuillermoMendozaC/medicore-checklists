@@ -31,7 +31,7 @@ create table checklist_templates (
 
 create table checklist_template_items (
   id uuid primary key default gen_random_uuid(),
-  template_id uuid references checklist_templates(id),
+  template_id uuid references checklist_templates(id) on delete cascade,
   label text not null,
   item_type text check (item_type in ('boolean','texto','numero','seleccion')),
   is_required boolean default true,
@@ -40,9 +40,9 @@ create table checklist_template_items (
 
 create table maintenance_checklists (
   id uuid primary key default gen_random_uuid(),
-  equipment_id uuid references equipment(id),
-  template_id uuid references checklist_templates(id),
-  technician_id uuid references profiles(id),
+  equipment_id uuid references equipment(id) on delete cascade,
+  template_id uuid references checklist_templates(id) on delete cascade,
+  technician_id uuid references profiles(id) on delete cascade,
   scheduled_date date,
   completed_at timestamptz,
   status text check (status in ('pendiente','en_progreso','completado')) default 'pendiente',
@@ -53,12 +53,13 @@ create table maintenance_checklists (
 
 create table checklist_responses (
   id uuid primary key default gen_random_uuid(),
-  checklist_id uuid references maintenance_checklists(id),
-  template_item_id uuid references checklist_template_items(id),
+  checklist_id uuid references maintenance_checklists(id) on delete cascade,
+  template_item_id uuid references checklist_template_items(id) on delete cascade,
   value text,
   notes text,
   photo_url text
 );
+
 
 -- RLS: habilitar en todas las tablas
 alter table profiles enable row level security;
