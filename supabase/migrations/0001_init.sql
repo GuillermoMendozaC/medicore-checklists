@@ -101,8 +101,20 @@ create policy "respuestas via checklist" on checklist_responses for all using (
   )
 );
 
+-- Función helper para verificar si es admin (evita recursión infinita en RLS)
+create or replace function public.es_admin()
+returns boolean as $$
+begin
+  return exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+end;
+$$ language plpgsql security definer;
+
 -- Perfiles: cada usuario ve y edita el suyo, admin ve todos
-create policy "perfil propio o admin" on profiles for select using (
-  id = auth.uid() or (select role from profiles where id = auth.uid()) = 'admin'
-);
+create policy "Ver perfil propio" on profiles for select using (id = auth.uid());
+create policy "Admins ven todos los perfiles" on profiles for select using (public.es_admin());
 create policy "actualizar perfil propio" on profiles for update using (id = auth.uid());
+
+

@@ -20,7 +20,7 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/categories', label: 'Categorías', icon: FolderHeart, roles: ['admin'] },
     { to: '/equipment', label: 'Equipos Médicos', icon: Stethoscope, roles: ['admin', 'tecnico'] },
     { to: '/templates', label: 'Plantillas Checklist', icon: FileCheck2, roles: ['admin'] },
-    { to: '/fill', label: 'Llenar Checklist', icon: PenTool, roles: ['tecnico'] },
+    { to: '/fill', label: 'Llenar Checklist', icon: PenTool, roles: ['admin', 'tecnico'] },
     { to: '/history', label: 'Historial Checklists', icon: History, roles: ['admin', 'tecnico'] }
   ]
 

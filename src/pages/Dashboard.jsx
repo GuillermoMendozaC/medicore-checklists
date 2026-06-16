@@ -412,9 +412,10 @@ export default function Dashboard() {
       )}
 
       {/* Main Dashboard Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {isAdmin ? (
-          <>
+      {/* Main Dashboard Section */}
+      <div className="space-y-8">
+        {isAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left: Schedule Maintenance Form */}
             <div className="lg:col-span-6 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
               <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2 border-b pb-3 border-slate-150 dark:border-slate-850">
@@ -528,8 +529,8 @@ export default function Dashboard() {
                       <div className="text-right">
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
                           chk.status === 'completado' 
-                            ? 'bg-emerald-50 text-emerald-700' 
-                            : 'bg-rose-50 text-rose-700 animate-pulse'
+                             ? 'bg-emerald-50 text-emerald-700' 
+                             : 'bg-rose-50 text-rose-700 animate-pulse'
                         }`}>
                           {chk.status === 'completado' ? 'Completado' : 'Pendiente'}
                         </span>
@@ -540,13 +541,15 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          </>
-        ) : (
-          /* Técnico View: Show pending assigned checklists */
-          <div className="lg:col-span-12 p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+          </div>
+        )}
+
+        {/* Assigned Pending Checklists Section: Render if not admin, or if admin and has tasks */}
+        {(!isAdmin || techPending.length > 0) && (
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2 border-b pb-3 border-slate-150 dark:border-slate-850">
               <ClipboardList className="h-5 w-5 text-indigo-500" />
-              Sus Inspecciones Asignadas Pendientes
+              {isAdmin ? 'Sus Inspecciones Asignadas Pendientes (Como Técnico)' : 'Sus Inspecciones Asignadas Pendientes'}
             </h3>
 
             {isChksLoading ? (
@@ -590,6 +593,7 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
     </div>
   )
 }

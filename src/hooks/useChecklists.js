@@ -163,7 +163,6 @@ export function useChecklists() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('role', 'tecnico')
           .order('full_name', { ascending: true })
         if (error) throw error
         return data

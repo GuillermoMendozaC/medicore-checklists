@@ -158,29 +158,34 @@ export default function Login() {
           </button>
         </div>
 
-        {/* Quick Credentials panel (Demo helper) */}
-        <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/50 space-y-2 relative">
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
-            Credenciales de Demostración (Demo Mode)
-          </span>
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              onClick={() => handleQuickLogin('admin@medicore.com', 'admin123')}
-              className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 flex flex-col items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300 transition-colors"
-            >
-              <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400">ADMIN</span>
-              <span className="text-[9px] font-medium leading-none text-slate-400 truncate w-full text-center">admin@medicore.com</span>
-            </button>
-            <button
-              onClick={() => handleQuickLogin('tecnico@medicore.com', 'tecnico123')}
-              className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 flex flex-col items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300 transition-colors"
-            >
-              <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">TÉCNICO</span>
-              <span className="text-[9px] font-medium leading-none text-slate-400 truncate w-full text-center">tecnico@medicore.com</span>
-            </button>
+        {/* Quick Credentials panel (Demo helper) - Only show if Supabase is NOT configured */}
+        {!import.meta.env.VITE_SUPABASE_URL && (
+          <div className="pt-4 border-t border-slate-200/50 dark:border-slate-800/50 space-y-2 relative">
+            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">
+              Credenciales de Demostración (Demo Mode)
+            </span>
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin@medicore.com', 'admin123')}
+                className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 flex flex-col items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300 transition-colors"
+              >
+                <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400">ADMIN</span>
+                <span className="text-[9px] font-medium leading-none text-slate-400 truncate w-full text-center">admin@medicore.com</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('tecnico@medicore.com', 'tecnico123')}
+                className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:bg-slate-700 flex flex-col items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300 transition-colors"
+              >
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">TÉCNICO</span>
+                <span className="text-[9px] font-medium leading-none text-slate-400 truncate w-full text-center">tecnico@medicore.com</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
+
   )
 }
