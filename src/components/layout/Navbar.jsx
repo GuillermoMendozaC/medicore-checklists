@@ -1,6 +1,7 @@
 import React from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { LogOut, User, Activity, Menu } from 'lucide-react'
+import OfflineIndicator from './OfflineIndicator'
 
 export default function Navbar({ onToggleSidebar }) {
   const { profile, logout } = useAuth()
@@ -27,6 +28,7 @@ export default function Navbar({ onToggleSidebar }) {
       </div>
 
       <div className="flex items-center gap-4">
+        <OfflineIndicator />
         <div className="hidden sm:flex flex-col items-end">
           <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{profile?.full_name}</span>
           <span className="text-xs text-slate-400 font-medium capitalize flex items-center gap-1.5">

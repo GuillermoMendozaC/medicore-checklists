@@ -210,10 +210,37 @@ if (isConfigured) {
       this.orderField = null
       this.orderAsc = true
       this.selectQuery = '*'
+      this.action = 'select'
+      this.records = null
+      this.updates = null
     }
 
     select(query = '*') {
+      this.action = 'select'
       this.selectQuery = query
+      return this
+    }
+
+    insert(records) {
+      this.action = 'insert'
+      this.records = records
+      return this
+    }
+
+    upsert(records) {
+      this.action = 'upsert'
+      this.records = records
+      return this
+    }
+
+    update(updates) {
+      this.action = 'update'
+      this.updates = updates
+      return this
+    }
+
+    delete() {
+      this.action = 'delete'
       return this
     }
 
@@ -251,6 +278,89 @@ if (isConfigured) {
 
     async then(resolve) {
       try {
+        if (this.action === 'insert') {
+          const data = getTableData(this.table)
+          const recordsArray = Array.isArray(this.records) ? this.records : [this.records]
+          
+          const inserted = recordsArray.map(r => ({
+            id: r.id || `${this.table.slice(0, 3)}-${Math.random().toString(36).substr(2, 9)}`,
+            created_at: new Date().toISOString(),
+            ...r
+          }))
+
+          setTableData(this.table, [...data, ...inserted])
+          resolve({ data: Array.isArray(this.records) ? inserted : inserted[0], error: null })
+          return
+        }
+
+        if (this.action === 'upsert') {
+          const data = getTableData(this.table)
+          const recordsArray = Array.isArray(this.records) ? this.records : [this.records]
+          
+          let updatedData = [...data]
+          const insertedOrUpdated = []
+
+          for (const r of recordsArray) {
+            const id = r.id || `${this.table.slice(0, 3)}-${Math.random().toString(36).substr(2, 9)}`
+            const existingIdx = updatedData.findIndex(item => item.id === id)
+            
+            const newRecord = {
+              id,
+              created_at: existingIdx >= 0 ? updatedData[existingIdx].created_at : new Date().toISOString(),
+              ...r
+            }
+
+            if (existingIdx >= 0) {
+              updatedData[existingIdx] = newRecord
+            } else {
+              updatedData.push(newRecord)
+            }
+            insertedOrUpdated.push(newRecord)
+          }
+
+          setTableData(this.table, updatedData)
+          resolve({ data: Array.isArray(this.records) ? insertedOrUpdated : insertedOrUpdated[0], error: null })
+          return
+        }
+
+        if (this.action === 'update') {
+          let data = getTableData(this.table)
+          let updatedItem = null
+
+          // Apply filters to find which to update
+          data = data.map(item => {
+            let matches = true
+            for (const filter of this.filters) {
+              if (!filter(item)) matches = false
+            }
+            if (matches) {
+              updatedItem = { ...item, ...this.updates }
+              return updatedItem
+            }
+            return item
+          })
+
+          setTableData(this.table, data)
+          resolve({ data: updatedItem, error: null })
+          return
+        }
+
+        if (this.action === 'delete') {
+          const data = getTableData(this.table)
+          const remaining = data.filter(item => {
+            let matches = true
+            for (const filter of this.filters) {
+              if (!filter(item)) matches = false
+            }
+            return !matches // keep items that don't match filters
+          })
+
+          setTableData(this.table, remaining)
+          resolve({ data: null, error: null })
+          return
+        }
+
+        // --- default 'select' action ---
         let data = getTableData(this.table)
         
         // For profiles table, we store it as a dict. Convert to array.
@@ -280,67 +390,6 @@ if (isConfigured) {
         resolve({ data, error: null })
       } catch (err) {
         resolve({ data: null, error: { message: err.message } })
-      }
-    }
-
-    async insert(records) {
-      try {
-        const data = getTableData(this.table)
-        const recordsArray = Array.isArray(records) ? records : [records]
-        
-        const inserted = recordsArray.map(r => ({
-          id: r.id || `${this.table.slice(0, 3)}-${Math.random().toString(36).substr(2, 9)}`,
-          created_at: new Date().toISOString(),
-          ...r
-        }))
-
-        setTableData(this.table, [...data, ...inserted])
-        return { data: Array.isArray(records) ? inserted : inserted[0], error: null }
-      } catch (err) {
-        return { data: null, error: { message: err.message } }
-      }
-    }
-
-    async update(updates) {
-      try {
-        let data = getTableData(this.table)
-        let updatedItem = null
-
-        // Apply filters to find which to update
-        data = data.map(item => {
-          let matches = true
-          for (const filter of this.filters) {
-            if (!filter(item)) matches = false
-          }
-          if (matches) {
-            updatedItem = { ...item, ...updates }
-            return updatedItem
-          }
-          return item
-        })
-
-        setTableData(this.table, data)
-        return { data: updatedItem, error: null }
-      } catch (err) {
-        return { data: null, error: { message: err.message } }
-      }
-    }
-
-    async delete() {
-      try {
-        const data = getTableData(this.table)
-        const remaining = data.filter(item => {
-          let matches = true
-          for (const filter of this.filters) {
-            if (!filter(item)) matches = false
-          }
-          return !matches // keep items that don't match filters
-        })
-
-        setTableData(this.table, remaining)
-        return { data: null, error: null }
-      } catch (err) {
-        return { data: null, error: { message: err.message } }
       }
     }
   }

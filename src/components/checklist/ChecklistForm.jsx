@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import ChecklistItem from './ChecklistItem'
 import SignaturePad from './SignaturePad'
 import { CheckSquare, Info, ShieldCheck } from 'lucide-react'
+import { dataURLtoBlob } from '../../lib/sync'
 
 export default function ChecklistForm({ checklist, templateItems = [], onSubmit }) {
   const [responses, setResponses] = useState([])
@@ -16,7 +17,8 @@ export default function ChecklistForm({ checklist, templateItems = [], onSubmit 
         templateItems.map(item => ({
           template_item_id: item.id,
           value: '',
-          notes: ''
+          notes: '',
+          photo_blob: null
         }))
       )
     }
@@ -29,7 +31,7 @@ export default function ChecklistForm({ checklist, templateItems = [], onSubmit 
     setErrorMsg('') // Clear error message when user makes changes
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     
     // Validation: Check if all required items are answered
@@ -37,7 +39,7 @@ export default function ChecklistForm({ checklist, templateItems = [], onSubmit 
       const item = templateItems[i]
       const resp = responses.find(r => r.template_item_id === item.id)
       
-      if (item.is_required && (!resp || resp.value === undefined || resp.value === null || resp.value.trim() === '')) {
+      if (item.is_required && (!resp || resp.value === undefined || resp.value === null || String(resp.value).trim() === '')) {
         setErrorMsg(`Por favor responda a la pregunta obligatoria: "${item.label}"`)
         return
       }
@@ -50,11 +52,18 @@ export default function ChecklistForm({ checklist, templateItems = [], onSubmit 
     }
 
     setErrorMsg('')
-    onSubmit({
-      general_notes: generalNotes,
-      signature_url: signatureUrl,
-      responses: responses
-    })
+    try {
+      const signatureBlob = await dataURLtoBlob(signatureUrl)
+      onSubmit({
+        general_notes: generalNotes,
+        signature_url: signatureUrl,
+        signature_blob: signatureBlob,
+        responses: responses
+      })
+    } catch (err) {
+      console.error("Error converting signature dataURL to blob:", err)
+      setErrorMsg("Error al guardar la firma digital.")
+    }
   }
 
   return (

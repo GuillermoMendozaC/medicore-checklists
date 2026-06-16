@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { syncPendingChecklists, syncMetadataToDexie } from '../lib/sync'
 
 const AuthContext = createContext({})
 
@@ -60,6 +61,30 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
+  // Synchronization and local caching lifecycle
+  useEffect(() => {
+    if (loading || !user) return
+
+    // Run synchronization immediately if online
+    if (navigator.onLine) {
+      syncPendingChecklists(user.id).then(() => {
+        syncMetadataToDexie(user.id)
+      })
+    }
+
+    // Trigger sync when connection is restored
+    const handleOnline = () => {
+      syncPendingChecklists(user.id).then(() => {
+        syncMetadataToDexie(user.id)
+      })
+    }
+
+    window.addEventListener('online', handleOnline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+    }
+  }, [user, loading])
+
   const login = async (email, password) => {
     setLoading(true)
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -80,6 +105,19 @@ export const AuthProvider = ({ children }) => {
       setLoading(false)
       throw error
     }
+    
+    // Clear local Dexie cache on logout
+    try {
+      const { db } = await import('../lib/db')
+      await db.transaction('rw', db.equipment, db.checklist_templates, db.checklist_template_items, async () => {
+        await db.equipment.clear()
+        await db.checklist_templates.clear()
+        await db.checklist_template_items.clear()
+      })
+    } catch (e) {
+      console.warn("Failed to clear local Dexie cache on logout:", e)
+    }
+
     setUser(null)
     setProfile(null)
     setLoading(false)
