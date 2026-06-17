@@ -52,7 +52,8 @@ export default function Dashboard() {
       let query = supabase
         .from('appointments')
         .select('*, client:clients(*), equipment:equipment(*, category:equipment_categories(*)), technician:profiles(*)')
-        .eq('status', 'asignada')
+        .in('status', ['asignada', 'completada'])
+        .order('confirmed_date', { ascending: false })
       
       if (profile.role !== 'admin') {
         query = query.eq('assigned_technician_id', profile.id)
@@ -619,28 +620,40 @@ export default function Dashboard() {
           <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2 border-b pb-3 border-slate-150 dark:border-slate-850">
               <Calendar className="h-5 w-5 text-indigo-500" />
-              {isAdmin ? 'Citas de Servicio Confirmadas (General)' : 'Sus Citas Asignadas Confirmadas'}
+              {isAdmin ? 'Citas de Servicio (General)' : 'Sus Citas Asignadas'}
             </h3>
 
             {!assignedAppointments || assignedAppointments.length === 0 ? (
               <div className="p-8 text-center text-slate-500">
                 <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
                 <p className="font-semibold text-sm">
-                  {isAdmin ? '¡Al día! No hay citas de servicio confirmadas asignadas.' : '¡Al día! No tiene citas técnicas asignadas pendientes.'}
+                  {isAdmin ? '¡Al día! No hay citas de servicio registradas.' : '¡Al día! No tiene citas técnicas asignadas.'}
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {assignedAppointments.map(appt => (
-                  <div key={appt.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/10 hover:border-slate-200 dark:hover:border-slate-850 flex flex-col justify-between gap-4 transition-all">
+                {assignedAppointments.map(appt => {
+                  const isCompleted = appt.status === 'completada'
+                  return (
+                  <div key={appt.id} className={`p-4 rounded-xl border flex flex-col justify-between gap-4 transition-all ${
+                    isCompleted
+                      ? 'border-emerald-100 dark:border-emerald-950/40 bg-emerald-50/10'
+                      : 'border-slate-100 dark:border-slate-800 bg-slate-50/10 hover:border-slate-200 dark:hover:border-slate-850'
+                  }`}>
                     <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded uppercase">
-                          Asignada
-                        </span>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        {isCompleted ? (
+                          <span className="text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 font-bold px-2 py-0.5 rounded uppercase flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" /> Completada
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded uppercase">
+                            Asignada
+                          </span>
+                        )}
                         <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          Confirmada: {appt.confirmed_date}
+                          {isCompleted ? 'Completada:' : 'Confirmada:'} {appt.confirmed_date}
                         </span>
                       </div>
                       <h4 className="font-bold text-sm text-slate-705 dark:text-white mt-2">
@@ -648,9 +661,9 @@ export default function Dashboard() {
                       </h4>
                       <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
                         <p className="font-semibold text-indigo-600">Cliente: {appt.client?.name}</p>
-                        {isAdmin && appt.technician && (
+                        {appt.technician && (
                           <p className="text-[11.5px] font-bold text-emerald-600 dark:text-emerald-400">
-                            Asignado a: {appt.technician.full_name}
+                            {isAdmin ? 'Asignado a:' : 'Técnico:'} {appt.technician.full_name}
                           </p>
                         )}
                         {appt.equipment && (
@@ -663,15 +676,23 @@ export default function Dashboard() {
                         )}
                       </div>
                     </div>
-                    <Link
-                      to={`/fill?equipment_id=${appt.equipment_id || ''}&appointment_id=${appt.id}`}
-                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-center text-xs flex items-center justify-center gap-1 shadow-sm transition-all"
-                    >
-                      Empezar Inspección / Checklist
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
+                    {!isCompleted ? (
+                      <Link
+                        to={`/fill?equipment_id=${appt.equipment_id || ''}&appointment_id=${appt.id}`}
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-center text-xs flex items-center justify-center gap-1 shadow-sm transition-all"
+                      >
+                        Empezar Inspección / Checklist
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </Link>
+                    ) : (
+                      <div className="w-full py-2 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 font-bold rounded-lg text-center text-xs flex items-center justify-center gap-1 border border-emerald-100 dark:border-emerald-900">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Inspección Completada
+                      </div>
+                    )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>

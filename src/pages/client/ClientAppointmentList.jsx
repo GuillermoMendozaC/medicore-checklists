@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
-import { Calendar, Plus, Stethoscope, User, Clock, Info, CheckCircle2 } from 'lucide-react'
+import { Calendar, Plus, Stethoscope, User, Clock, Info, CheckCircle2, FileDown } from 'lucide-react'
+import { exportChecklistToPdf } from '../../lib/exportPdf'
 
 export default function ClientAppointmentList() {
   const { profile } = useAuth()
@@ -93,63 +94,147 @@ export default function ClientAppointmentList() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {appointments.map((appt) => (
-            <div 
-              key={appt.id} 
-              className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4"
-            >
-              <div className="space-y-3">
-                <div className="flex justify-between items-start gap-4 flex-wrap">
-                  {getStatusBadge(appt.status)}
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    ID Cita: <span>{appt.id.slice(0, 8)}</span>
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-slate-800 dark:text-white text-base leading-tight">
-                    {appt.equipment ? appt.equipment.name : 'Inspección de Equipos General'}
-                  </h4>
-                  {appt.equipment && (
-                    <span className="text-[11px] text-slate-450 font-semibold flex items-center gap-1.5 mt-1.5">
-                      <Stethoscope className="h-3.5 w-3.5 text-slate-405" />
-                      S/N: {appt.equipment.serial_number || 'N/A'} • Ubicación: {appt.equipment.location || 'N/A'}
-                    </span>
-                  )}
-                </div>
-
-                {appt.description && (
-                  <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs text-slate-600 dark:text-slate-350 leading-normal italic">
-                    "{appt.description}"
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-slate-400 font-medium">Fecha Preferente</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{appt.requested_date}</span>
-                  </div>
-
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-slate-400 font-medium">Fecha Confirmada</span>
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
-                      {appt.confirmed_date || <span className="text-slate-400 font-normal italic">Por confirmar</span>}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {appt.assigned_technician_id && (
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">Técnico Asignado:</span>
-                  <span className="font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 bg-indigo-50/50 dark:bg-slate-800 py-1 px-2.5 rounded-lg border border-indigo-100/10">
-                    <User className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                    {appt.technician?.full_name}
-                  </span>
-                </div>
-              )}
-            </div>
+            <AppointmentCard
+              key={appt.id}
+              appt={appt}
+              getStatusBadge={getStatusBadge}
+            />
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Appointment Card with PDF download ──────────────────────────────────────
+function AppointmentCard({ appt, getStatusBadge }) {
+  const [isExporting, setIsExporting] = useState(false)
+
+  const handleDownloadPDF = async () => {
+    setIsExporting(true)
+    try {
+      // 1. Find the linked completed checklist for this appointment
+      const { data: checklists, error: chkError } = await supabase
+        .from('maintenance_checklists')
+        .select('*, equipment:equipment(*), template:checklist_templates(*), technician:profiles(*)')
+        .eq('appointment_id', appt.id)
+        .eq('status', 'completado')
+        .order('completed_at', { ascending: false })
+        .limit(1)
+
+      if (chkError) throw chkError
+
+      if (!checklists || checklists.length === 0) {
+        alert('No se encontró el reporte de inspección vinculado a esta cita. El técnico podría no haber subido el checklist aún.')
+        return
+      }
+
+      const chk = checklists[0]
+
+      // 2. Fetch responses for this checklist
+      const { data: responses, error: respError } = await supabase
+        .from('checklist_responses')
+        .select('*, template_item:checklist_template_items(*)')
+        .eq('checklist_id', chk.id)
+
+      if (respError) throw respError
+
+      // 3. Generate and download the PDF
+      await exportChecklistToPdf(chk, responses || [])
+    } catch (err) {
+      console.error('Error descargando PDF:', err)
+      alert('Error al generar el reporte PDF: ' + err.message)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  return (
+    <div
+      className={`p-5 rounded-2xl bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all flex flex-col justify-between gap-4 border ${
+        appt.status === 'completada'
+          ? 'border-emerald-100 dark:border-emerald-950/40'
+          : 'border-slate-100 dark:border-slate-800'
+      }`}
+    >
+      <div className="space-y-3">
+        <div className="flex justify-between items-start gap-4 flex-wrap">
+          {getStatusBadge(appt.status)}
+          <span className="text-[10px] text-slate-400 font-mono">
+            ID Cita: <span>{appt.id.slice(0, 8)}</span>
+          </span>
+        </div>
+
+        <div>
+          <h4 className="font-bold text-slate-800 dark:text-white text-base leading-tight">
+            {appt.equipment ? appt.equipment.name : 'Inspección de Equipos General'}
+          </h4>
+          {appt.equipment && (
+            <span className="text-[11px] text-slate-450 font-semibold flex items-center gap-1.5 mt-1.5">
+              <Stethoscope className="h-3.5 w-3.5 text-slate-405" />
+              S/N: {appt.equipment.serial_number || 'N/A'} • Ubicación: {appt.equipment.location || 'N/A'}
+            </span>
+          )}
+        </div>
+
+        {appt.description && (
+          <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs text-slate-600 dark:text-slate-350 leading-normal italic">
+            "{appt.description}"
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-slate-400 font-medium">Fecha Preferente</span>
+            <span className="font-bold text-slate-700 dark:text-slate-300">{appt.requested_date}</span>
+          </div>
+
+          <div className="flex flex-col gap-0.5">
+            <span className="text-slate-400 font-medium">Fecha Confirmada</span>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">
+              {appt.confirmed_date || <span className="text-slate-400 font-normal italic">Por confirmar</span>}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {appt.assigned_technician_id && (
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-2 flex-wrap">
+          <span className="font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 bg-indigo-50/50 dark:bg-slate-800 py-1 px-2.5 rounded-lg border border-indigo-100/10">
+            <User className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+            {appt.technician?.full_name || 'Técnico Asignado'}
+          </span>
+
+          {appt.status === 'completada' && (
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 font-bold text-xs transition-colors disabled:opacity-60"
+            >
+              {isExporting ? (
+                <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+              ) : (
+                <FileDown className="h-3.5 w-3.5" />
+              )}
+              {isExporting ? 'Generando...' : 'Descargar PDF'}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Full-width download button for completed appointments without technician shown */}
+      {appt.status === 'completada' && !appt.assigned_technician_id && (
+        <button
+          onClick={handleDownloadPDF}
+          disabled={isExporting}
+          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all"
+        >
+          {isExporting ? (
+            <><div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Generando PDF...</>
+          ) : (
+            <><FileDown className="h-4 w-4" /> Descargar Reporte de Inspección (PDF)</>
+          )}
+        </button>
       )}
     </div>
   )
