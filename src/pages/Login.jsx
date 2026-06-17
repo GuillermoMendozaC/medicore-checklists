@@ -17,22 +17,7 @@ export default function Login() {
   const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const [clients, setClients] = useState([])
-  const [clientId, setClientId] = useState('')
-
-  React.useEffect(() => {
-    if (isSignUp) {
-      import('../lib/supabase').then(({ supabase }) => {
-        supabase
-          .from('clients')
-          .select('*')
-          .order('name', { ascending: true })
-          .then(({ data }) => {
-            if (data) setClients(data)
-          })
-      })
-    }
-  }, [isSignUp])
+  const [clinicName, setClinicName] = useState('')
 
   React.useEffect(() => {
     if (isLoggedIn && profile) {
@@ -46,8 +31,8 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (isSignUp && role === 'cliente' && !clientId) {
-      setErrorMsg('Debe seleccionar su clínica / empresa para registrarse como cliente.')
+    if (isSignUp && role === 'cliente' && !clinicName.trim()) {
+      setErrorMsg('Debe ingresar el nombre de su clínica o empresa.')
       return
     }
 
@@ -57,7 +42,7 @@ export default function Login() {
 
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName, role, clientId || null)
+        await signUp(email, password, fullName, role, clinicName.trim() || null)
         setSuccessMsg('¡Usuario registrado con éxito! Iniciando sesión...')
       } else {
         await login(email, password)
@@ -156,7 +141,7 @@ export default function Login() {
                   onChange={(e) => {
                     setRole(e.target.value)
                     if (e.target.value !== 'cliente') {
-                      setClientId('')
+                      setClinicName('')
                     }
                   }}
                   className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
@@ -169,18 +154,15 @@ export default function Login() {
 
               {role === 'cliente' && (
                 <div>
-                  <label className="custom-label">Asociar Clínica / Empresa *</label>
-                  <select
+                  <label className="custom-label">Nombre de su Clínica / Empresa *</label>
+                  <input
+                    type="text"
                     required
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                    className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
-                  >
-                    <option value="">-- Seleccionar clínica --</option>
-                    {clients.map(cli => (
-                      <option key={cli.id} value={cli.id}>{cli.name}</option>
-                    ))}
-                  </select>
+                    value={clinicName}
+                    onChange={(e) => setClinicName(e.target.value)}
+                    placeholder="Ej: Clínica Santa María, Dental Health..."
+                    className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                  />
                 </div>
               )}
             </div>

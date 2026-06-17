@@ -35,8 +35,8 @@ create policy "clientes ven su propio registro, admin ve todos" on clients for s
   id = (select client_id from profiles where id = auth.uid())
   or (select role from profiles where id = auth.uid()) = 'admin'
 );
-create policy "solo admin crea clientes" on clients for insert with check (
-  (select role from profiles where id = auth.uid()) = 'admin'
+create policy "permitir crear clientes a autenticados" on clients for insert with check (
+  auth.role() = 'authenticated'
 );
 create policy "solo admin actualiza clientes" on clients for update using (
   (select role from profiles where id = auth.uid()) = 'admin'

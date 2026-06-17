@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false)
   }
 
-  const signUp = async (email, password, fullName, role = 'tecnico', client_id = null) => {
+  const signUp = async (email, password, fullName, role = 'tecnico', clinicNameOrId = null) => {
     setLoading(true)
     // 1. Auth SignUp
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -132,8 +132,7 @@ export const AuthProvider = ({ children }) => {
       options: {
         data: {
           full_name: fullName,
-          role: role,
-          client_id: client_id
+          role: role
         }
       }
     })
@@ -144,6 +143,26 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (data?.user) {
+      let client_id = null
+
+      if (role === 'cliente' && clinicNameOrId) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clinicNameOrId)
+        if (isUuid) {
+          client_id = clinicNameOrId
+        } else {
+          const { data: newClient, error: clientErr } = await supabase
+            .from('clients')
+            .insert({ name: clinicNameOrId })
+            .select()
+          
+          if (clientErr) {
+            setLoading(false)
+            throw clientErr
+          }
+          client_id = newClient && newClient[0]?.id
+        }
+      }
+
       // 2. Insert profile record (RLS and Schema setup)
       const { error: profileError } = await supabase
         .from('profiles')
@@ -151,7 +170,7 @@ export const AuthProvider = ({ children }) => {
           id: data.user.id,
           full_name: fullName,
           role: role,
-          client_id: role === 'cliente' ? client_id : null
+          client_id: client_id
         })
 
       if (profileError) {
