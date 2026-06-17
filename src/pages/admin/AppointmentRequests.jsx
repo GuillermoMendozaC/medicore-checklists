@@ -42,19 +42,20 @@ export default function AppointmentRequests() {
     }
   })
 
-  // 2. Fetch Technicians for Dropdown Selector
+  // 2. Fetch Technicians & Admins for Dropdown Selector
   const { data: technicians } = useQuery({
-    queryKey: ['profiles_technicians_only'],
+    queryKey: ['profiles_assignable_users'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'tecnico')
+        .in('role', ['tecnico', 'admin'])
         .order('full_name', { ascending: true })
       if (error) throw error
       return data
     }
   })
+
 
   // 3. Mutation to Assign Technician
   const assignAppointmentMutation = useMutation({
