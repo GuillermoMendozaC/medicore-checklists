@@ -35,9 +35,14 @@ export default function Login() {
     try {
       await login(email, password)
     } catch (err) {
-      setErrorMsg(err.message || 'Error al procesar la autenticación')
+      console.error("Login error:", err)
+      const msg = err && typeof err === 'object'
+        ? err.message || (typeof err.error === 'string' ? err.error : JSON.stringify(err))
+        : String(err)
+      setErrorMsg(msg || 'Error al procesar la autenticación')
       setLoading(false)
     }
+
   }
 
   // Quick credentials loader helper

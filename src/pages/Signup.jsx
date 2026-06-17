@@ -51,9 +51,14 @@ export default function Signup() {
         }, 1500)
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Error al procesar el registro')
+      console.error("Signup error:", err)
+      const msg = err && typeof err === 'object'
+        ? err.message || (typeof err.error === 'string' ? err.error : JSON.stringify(err))
+        : String(err)
+      setErrorMsg(msg || 'Error al procesar el registro')
       setLoading(false)
     }
+
   }
 
   if (showCheckEmail) {
