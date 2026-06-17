@@ -46,18 +46,23 @@ export default function Dashboard() {
   const { data: technicians } = useTechnicians()
 
   const { data: assignedAppointments } = useQuery({
-    queryKey: ['assigned_appointments', profile?.id],
+    queryKey: ['assigned_appointments', profile?.id, profile?.role],
     queryFn: async () => {
       if (!profile?.id) return []
-      const { data, error } = await supabase
+      let query = supabase
         .from('appointments')
-        .select('*, client:clients(*), equipment:equipment(*, category:equipment_categories(*))')
-        .eq('assigned_technician_id', profile.id)
+        .select('*, client:clients(*), equipment:equipment(*, category:equipment_categories(*)), technician:profiles(*)')
         .eq('status', 'asignada')
+      
+      if (profile.role !== 'admin') {
+        query = query.eq('assigned_technician_id', profile.id)
+      }
+      
+      const { data, error } = await query
       if (error) throw error
       return data
     },
-    enabled: !!profile?.id && profile?.role === 'tecnico'
+    enabled: !!profile?.id && (profile?.role === 'tecnico' || profile?.role === 'admin')
   })
   
   const createChecklistMutation = useCreateChecklist()
@@ -609,18 +614,20 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Assigned Technical Appointments Section (Technicians only) */}
-        {profile?.role === 'tecnico' && (
+        {/* Assigned Technical Appointments Section (Technicians and Admins) */}
+        {(profile?.role === 'tecnico' || profile?.role === 'admin') && (
           <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2 border-b pb-3 border-slate-150 dark:border-slate-850">
               <Calendar className="h-5 w-5 text-indigo-500" />
-              Sus Citas Asignadas Confirmadas
+              {isAdmin ? 'Citas de Servicio Confirmadas (General)' : 'Sus Citas Asignadas Confirmadas'}
             </h3>
 
             {!assignedAppointments || assignedAppointments.length === 0 ? (
               <div className="p-8 text-center text-slate-500">
                 <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                <p className="font-semibold text-sm">¡Al día! No tiene citas técnicas asignadas pendientes.</p>
+                <p className="font-semibold text-sm">
+                  {isAdmin ? '¡Al día! No hay citas de servicio confirmadas asignadas.' : '¡Al día! No tiene citas técnicas asignadas pendientes.'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -641,6 +648,11 @@ export default function Dashboard() {
                       </h4>
                       <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
                         <p className="font-semibold text-indigo-600">Cliente: {appt.client?.name}</p>
+                        {isAdmin && appt.technician && (
+                          <p className="text-[11.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                            Asignado a: {appt.technician.full_name}
+                          </p>
+                        )}
                         {appt.equipment && (
                           <p>S/N: {appt.equipment.serial_number || 'N/A'} • Ubicación: {appt.equipment.location || 'N/A'}</p>
                         )}

@@ -26,7 +26,7 @@ export default function TemplateList() {
   } = useTemplates()
 
   const { data: categories } = useCategories()
-  const { data: templates, isLoading: isTemplatesLoading } = useTemplatesList()
+  const { data: templates, isLoading: isTemplatesLoading, isError: isTemplatesError, error: templatesError } = useTemplatesList()
   const createTemplateMutation = useCreateTemplate()
   const deleteTemplateMutation = useDeleteTemplate()
 
@@ -206,6 +206,8 @@ export default function TemplateList() {
               <div className="py-6 flex justify-center">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent"></div>
               </div>
+            ) : isTemplatesError ? (
+              <p className="text-rose-500 text-center text-xs py-4">Error: {templatesError?.message}</p>
             ) : templates?.length === 0 ? (
               <p className="text-slate-500 text-center text-xs py-4">No hay plantillas creadas.</p>
             ) : (
