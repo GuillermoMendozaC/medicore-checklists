@@ -147,7 +147,6 @@ export default function Login() {
                   className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
                 >
                   <option value="tecnico">Técnico (Llenar Checklists)</option>
-                  <option value="admin">Administrador (Gestionar Equipos/Plantillas)</option>
                   <option value="cliente">Cliente (Clínica/Empresa Externa)</option>
                 </select>
               </div>

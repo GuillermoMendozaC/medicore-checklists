@@ -150,16 +150,23 @@ export const AuthProvider = ({ children }) => {
         if (isUuid) {
           client_id = clinicNameOrId
         } else {
-          const { data: newClient, error: clientErr } = await supabase
+          // Generate a UUID on the client side to avoid RLS select restrictions during insert
+          const generatedClientId = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+              });
+
+          const { error: clientErr } = await supabase
             .from('clients')
-            .insert({ name: clinicNameOrId })
-            .select()
+            .insert({ id: generatedClientId, name: clinicNameOrId })
           
           if (clientErr) {
             setLoading(false)
             throw clientErr
           }
-          client_id = newClient && newClient[0]?.id
+          client_id = generatedClientId
         }
       }
 
