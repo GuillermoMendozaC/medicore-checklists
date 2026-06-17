@@ -28,10 +28,16 @@ export default function ChecklistFill() {
   const [isCompletedSuccess, setIsCompletedSuccess] = useState(false)
 
   // Pre-fill states from query params
+  // isGeneralInspection = true when coming from an appointment with no equipment
+  const isGeneralInspection = !!queryAppointmentId && !queryEquipmentId
+
   useEffect(() => {
     if (queryEquipmentId) {
       setFillMode('directa')
       setSelectedEqId(queryEquipmentId)
+    } else if (queryAppointmentId) {
+      // General appointment (no specific equipment) -> directa mode, no equipment pre-selected
+      setFillMode('directa')
     }
     if (queryAppointmentId) {
       setAppointmentId(queryAppointmentId)
@@ -94,7 +100,10 @@ export default function ChecklistFill() {
     ? activeEquipment.find(e => e.id === selectedEqId)
     : activeChecklist?.equipment
 
-  // Filter templates: only templates matching selected equipment's category
+  // Filter templates:
+  // - If a specific equipment is selected: only templates matching its category
+  // - If it's a general inspection (no equipment): show ALL templates
+  // - If in 'programada' mode with no equipment selected: show all
   const filteredTemplates = selectedEquipment
     ? allTemplates.filter(t => t.category_id === selectedEquipment.category_id)
     : allTemplates
@@ -104,11 +113,14 @@ export default function ChecklistFill() {
     : activeChecklist?.template
 
   // Generate a client UUID for the new checklist
+  // Works when either an equipment + template is selected, OR just a template (general inspection)
   useEffect(() => {
-    if (fillMode === 'directa' && selectedEqId && selectedTemplateId) {
+    const hasTemplate = fillMode === 'directa' && selectedTemplateId
+    const hasEquipOrGeneral = selectedEqId || isGeneralInspection
+    if (hasTemplate && hasEquipOrGeneral) {
       setClientChecklistId(crypto.randomUUID())
     }
-  }, [fillMode, selectedEqId, selectedTemplateId])
+  }, [fillMode, selectedEqId, selectedTemplateId, isGeneralInspection])
 
   // 5. Fetch checklist items from Dexie based on active template
   const templateId = fillMode === 'programada'
@@ -305,89 +317,129 @@ export default function ChecklistFill() {
         /* DIRECT/ON-THE-FLY MODE */
         <div className="space-y-6">
           <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Nueva Inspección de Equipo</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Equipment selection */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Seleccione el Equipo Médico *</label>
-                <select
-                  value={selectedEqId}
-                  onChange={(e) => {
-                    setSelectedEqId(e.target.value)
-                    setSelectedTemplateId('')
-                  }}
-                  className="custom-input dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer text-sm"
-                >
-                  <option value="">-- Seleccionar equipo --</option>
-                  {activeEquipment.map(eq => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.name} (N/S: {eq.serial_number || 'N/A'})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+              {isGeneralInspection ? 'Inspección General de Equipos' : 'Nueva Inspección de Equipo'}
+            </h3>
 
-              {/* Template selection (filtered by category) */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Seleccione la Plantilla de Inspección *</label>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  disabled={!selectedEqId}
-                  className="custom-input dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">-- Seleccionar plantilla --</option>
-                  {filteredTemplates.map(t => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.frequency})
-                    </option>
-                  ))}
-                </select>
+            {isGeneralInspection ? (
+              /* General inspection: appointment with no specific equipment — skip equipment selector */
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40">
+                  <Info className="h-4 w-4 text-indigo-500 flex-shrink-0" />
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+                    Esta cita es una <strong>inspección general</strong> sin equipo específico asignado. Seleccione la plantilla de inspección a aplicar.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Seleccione la Plantilla de Inspección *</label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                    className="custom-input dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer text-sm"
+                  >
+                    <option value="">-- Seleccionar plantilla --</option>
+                    {allTemplates.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.frequency})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Regular inspection: select equipment then filter templates by category */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Equipment selection */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Seleccione el Equipo Médico *</label>
+                  <select
+                    value={selectedEqId}
+                    onChange={(e) => {
+                      setSelectedEqId(e.target.value)
+                      setSelectedTemplateId('')
+                    }}
+                    className="custom-input dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer text-sm"
+                  >
+                    <option value="">-- Seleccionar equipo --</option>
+                    {activeEquipment.map(eq => (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.name} (N/S: {eq.serial_number || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Template selection (filtered by category) */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">Seleccione la Plantilla de Inspección *</label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
+                    disabled={!selectedEqId}
+                    className="custom-input dark:bg-slate-950 dark:border-slate-800 dark:text-white cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">-- Seleccionar plantilla --</option>
+                    {filteredTemplates.map(t => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.frequency})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
 
       {/* Render selected checklist questionnaire */}
-      {selectedEquipment && selectedTemplate ? (
+      {(selectedEquipment || (isGeneralInspection && selectedTemplate) || (fillMode === 'directa' && selectedEquipment && selectedTemplate)) && selectedTemplate ? (
         <div className="space-y-6">
-          {/* Target Equipment Summary Card */}
-          <div className="p-5 rounded-2xl bg-slate-900 text-white shadow-md space-y-3 relative overflow-hidden">
-            {/* Decorative stethoscope icon */}
-            <Stethoscope className="absolute right-0 bottom-0 -mr-6 -mb-6 h-28 w-28 text-white/5 pointer-events-none" />
-
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="text-[10px] bg-indigo-600 text-indigo-200 font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/20">
-                  Dispositivo Evaluado
+          {/* Target Equipment / General Inspection Summary Card */}
+          {selectedEquipment ? (
+            <div className="p-5 rounded-2xl bg-slate-900 text-white shadow-md space-y-3 relative overflow-hidden">
+              <Stethoscope className="absolute right-0 bottom-0 -mr-6 -mb-6 h-28 w-28 text-white/5 pointer-events-none" />
+              <div className="flex justify-between items-start">
+                <div>
+                  <span className="text-[10px] bg-indigo-600 text-indigo-200 font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/20">
+                    Dispositivo Evaluado
+                  </span>
+                  <h3 className="text-xl font-bold mt-1.5">{selectedEquipment.name}</h3>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  ID Registro: <span>{selectedEquipment.id.slice(0, 8)}</span>
                 </span>
-                <h3 className="text-xl font-bold mt-1.5">{selectedEquipment.name}</h3>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">
-                ID Registro: <span>{selectedEquipment.id.slice(0, 8)}</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-2">
+                <div className="flex flex-col">
+                  <span className="text-slate-450">Marca</span>
+                  <span className="font-semibold">{selectedEquipment.brand || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-450">Modelo</span>
+                  <span className="font-semibold">{selectedEquipment.model || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-450">Número de Serie</span>
+                  <span className="font-semibold font-mono text-slate-200">{selectedEquipment.serial_number || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-slate-450">Ubicación Física</span>
+                  <span className="font-semibold">{selectedEquipment.location || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* General Inspection banner (no specific equipment) */
+            <div className="p-5 rounded-2xl bg-slate-900 text-white shadow-md space-y-2 relative overflow-hidden">
+              <Stethoscope className="absolute right-0 bottom-0 -mr-6 -mb-6 h-28 w-28 text-white/5 pointer-events-none" />
+              <span className="text-[10px] bg-indigo-600 text-indigo-200 font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/20">
+                Inspección General
               </span>
+              <h3 className="text-xl font-bold">Inspección de Equipos General</h3>
+              <p className="text-xs text-slate-400">Plantilla: <span className="font-semibold text-white">{selectedTemplate.name}</span> • Frecuencia: {selectedTemplate.frequency}</p>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-2">
-              <div className="flex flex-col">
-                <span className="text-slate-450">Marca</span>
-                <span className="font-semibold">{selectedEquipment.brand || 'N/A'}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-450">Modelo</span>
-                <span className="font-semibold">{selectedEquipment.model || 'N/A'}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-450">Número de Serie</span>
-                <span className="font-semibold font-mono text-slate-200">{selectedEquipment.serial_number || 'N/A'}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-slate-450">Ubicación Física</span>
-                <span className="font-semibold">{selectedEquipment.location || 'N/A'}</span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Form questionnaire */}
           {templateItems.length === 0 ? (
@@ -405,8 +457,17 @@ export default function ChecklistFill() {
       ) : (
         <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-slate-400">
           <Info className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-400" />
-          <p className="font-semibold text-sm">Seleccione un checklist o equipo para iniciar</p>
-          <span className="text-xs">Se cargarán las preguntas asociadas al dispositivo de forma automática.</span>
+          {isGeneralInspection ? (
+            <>
+              <p className="font-semibold text-sm">Seleccione una plantilla para iniciar la inspección general</p>
+              <span className="text-xs">Se cargarán las preguntas del cuestionario seleccionado.</span>
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-sm">Seleccione un checklist o equipo para iniciar</p>
+              <span className="text-xs">Se cargarán las preguntas asociadas al dispositivo de forma automática.</span>
+            </>
+          )}
         </div>
       )}
     </div>
