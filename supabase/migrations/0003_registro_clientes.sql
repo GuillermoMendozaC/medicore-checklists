@@ -12,7 +12,9 @@ alter table profiles alter column role set default 'pendiente';
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
+security definer
 as $$
+
 declare
   new_client_id uuid;
 begin
