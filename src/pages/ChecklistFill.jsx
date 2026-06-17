@@ -157,7 +157,7 @@ export default function ChecklistFill() {
       // 1. Save completed checklist to Dexie
       await db.pending_checklists.put({
         id: checklistId,
-        equipment_id: equipmentId,
+        equipment_id: equipmentId || null,  // null for general inspections (no equipment)
         template_id: targetTemplateId,
         technician_id: user?.id,
         scheduled_date: scheduledDate,

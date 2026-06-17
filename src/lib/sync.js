@@ -213,16 +213,17 @@ export async function syncPendingChecklists(userId) {
         }
 
         // 4. Upsert completed checklist record to Supabase
+        // Sanitize UUID fields: convert empty strings to null to avoid Postgres UUID parse errors
         const checklistPayload = {
           id: checklist.id,
-          equipment_id: checklist.equipment_id,
-          template_id: checklist.template_id,
-          technician_id: checklist.technician_id,
+          equipment_id: checklist.equipment_id || null,
+          template_id: checklist.template_id || null,
+          technician_id: checklist.technician_id || null,
           scheduled_date: checklist.scheduled_date,
           completed_at: checklist.completed_at,
           status: 'completado',
-          general_notes: checklist.general_notes,
-          signature_url: signatureUrl,
+          general_notes: checklist.general_notes || null,
+          signature_url: signatureUrl || null,
           appointment_id: checklist.appointment_id || null
         }
 
