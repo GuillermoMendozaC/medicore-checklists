@@ -132,7 +132,7 @@ export default function AppointmentRequests() {
       case 'completada':
         return (
           <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 w-fit">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-650" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
             Completada
           </span>
         )
@@ -170,7 +170,7 @@ export default function AppointmentRequests() {
               className={`px-3 py-1.5 rounded-xl capitalize transition-all duration-200 ${
                 (statusFilter === '' && status === 'todo') || statusFilter === status
                   ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm border border-slate-205/50'
-                  : 'text-slate-400 hover:text-slate-650 dark:hover:text-slate-350'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-350'
               }`}
             >
               {status}
@@ -221,7 +221,7 @@ export default function AppointmentRequests() {
                       {appt.equipment ? appt.equipment.name : 'Solicitud General'}
                     </h3>
                     <div className="flex flex-col gap-1.5 mt-2">
-                      <span className="text-xs font-bold text-indigo-650 dark:text-indigo-400 flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
                         <Building className="h-4 w-4 text-slate-400" />
                         Clínica: {appt.client?.name || 'Cliente Desconocido'}
                       </span>
@@ -235,7 +235,7 @@ export default function AppointmentRequests() {
                   </div>
 
                   {appt.description && (
-                    <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs text-slate-650 dark:text-slate-350 leading-normal italic">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl text-xs text-slate-600 dark:text-slate-350 leading-normal italic">
                       "{appt.description}"
                     </div>
                   )}
@@ -279,7 +279,7 @@ export default function AppointmentRequests() {
                         <button
                           type="button"
                           onClick={() => handleSaveAssignment(appt.id)}
-                          className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-750 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-sm"
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-sm"
                         >
                           <Save className="h-3.5 w-3.5" />
                           Confirmar Asignación
@@ -324,7 +324,7 @@ export default function AppointmentRequests() {
                     {appt.status === 'pendiente' && (
                       <button
                         onClick={() => handleStartAssign(appt)}
-                        className="py-1.5 px-3 bg-indigo-650 hover:bg-indigo-750 text-white font-bold rounded-lg text-xs shadow-sm transition-colors"
+                        className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow-sm transition-colors"
                       >
                         Asignar Técnico
                       </button>

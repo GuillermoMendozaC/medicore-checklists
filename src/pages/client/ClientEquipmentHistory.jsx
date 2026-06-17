@@ -168,7 +168,7 @@ export default function ClientEquipmentHistory() {
       <div className="flex items-center gap-3">
         <Link
           to="/portal/equipos"
-          className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-650 transition-colors"
+          className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 transition-colors"
           title="Volver"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -243,7 +243,7 @@ export default function ClientEquipmentHistory() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-3.5">
-                    <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center flex-shrink-0">
                       <Clock className="h-5 w-5" />
                     </div>
                     <div>
@@ -302,7 +302,7 @@ export default function ClientEquipmentHistory() {
                         <span className="font-bold text-[10px] text-slate-400 uppercase tracking-widest block">
                           Observaciones Generales
                         </span>
-                        <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border text-slate-650 dark:text-slate-300 leading-normal italic">
+                        <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border text-slate-600 dark:text-slate-300 leading-normal italic">
                           {chk.general_notes || 'Sin observaciones generales registradas.'}
                         </p>
                       </div>

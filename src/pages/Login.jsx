@@ -1,28 +1,25 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Activity, LogIn, UserPlus, Info, Check } from 'lucide-react'
+import { Activity, LogIn, Info, Check } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, signUp, isLoggedIn, profile } = useAuth()
+  const { login, isLoggedIn, profile } = useAuth()
   
-  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState('tecnico')
   
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const [clinicName, setClinicName] = useState('')
-
   React.useEffect(() => {
     if (isLoggedIn && profile) {
       if (profile.role === 'cliente') {
         navigate('/portal/equipos')
+      } else if (profile.role === 'pendiente') {
+        navigate('/pendiente')
       } else {
         navigate('/')
       }
@@ -31,22 +28,12 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (isSignUp && role === 'cliente' && !clinicName.trim()) {
-      setErrorMsg('Debe ingresar el nombre de su clínica o empresa.')
-      return
-    }
-
     setErrorMsg('')
     setSuccessMsg('')
     setLoading(true)
 
     try {
-      if (isSignUp) {
-        await signUp(email, password, fullName, role, clinicName.trim() || null)
-        setSuccessMsg('¡Usuario registrado con éxito! Iniciando sesión...')
-      } else {
-        await login(email, password)
-      }
+      await login(email, password)
     } catch (err) {
       setErrorMsg(err.message || 'Error al procesar la autenticación')
       setLoading(false)
@@ -57,13 +44,12 @@ export default function Login() {
   const handleQuickLogin = (quickEmail, quickPassword) => {
     setEmail(quickEmail)
     setPassword(quickPassword)
-    setIsSignUp(false)
     setErrorMsg('')
   }
 
   return (
     <div className="gradient-bg min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md glass-panel p-8 rounded-3xl shadow-xl space-y-6 relative overflow-hidden">
+      <div className="w-full max-w-md glass-panel p-8 rounded-3xl shadow-xl space-y-6 relative overflow-hidden animate-fade-in">
         {/* Background glow effects */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
         <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl"></div>
@@ -94,20 +80,6 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 relative">
-          {isSignUp && (
-            <div>
-              <label className="custom-label">Nombre Completo</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Ej: Ing. Carlos Gómez"
-                className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-              />
-            </div>
-          )}
-
           <div>
             <label className="custom-label">Correo Electrónico</label>
             <input
@@ -132,63 +104,23 @@ export default function Login() {
             />
           </div>
 
-          {isSignUp && (
-            <div className="space-y-4">
-              <div>
-                <label className="custom-label">Rol Organizacional</label>
-                <select
-                  value={role}
-                  onChange={(e) => {
-                    setRole(e.target.value)
-                    if (e.target.value !== 'cliente') {
-                      setClinicName('')
-                    }
-                  }}
-                  className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-                >
-                  <option value="tecnico">Técnico (Llenar Checklists)</option>
-                  <option value="cliente">Cliente (Clínica/Empresa Externa)</option>
-                </select>
-              </div>
-
-              {role === 'cliente' && (
-                <div>
-                  <label className="custom-label">Nombre de su Clínica / Empresa *</label>
-                  <input
-                    type="text"
-                    required
-                    value={clinicName}
-                    onChange={(e) => setClinicName(e.target.value)}
-                    placeholder="Ej: Clínica Santa María, Dental Health..."
-                    className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={loading}
             className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 hover:shadow-indigo-600/35 transition-all duration-200"
           >
-            {isSignUp ? <UserPlus className="h-4.5 w-4.5" /> : <LogIn className="h-4.5 w-4.5" />}
-            {loading ? 'Procesando...' : isSignUp ? 'Registrarse' : 'Iniciar Sesión'}
+            <LogIn className="h-4.5 w-4.5" />
+            {loading ? 'Procesando...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(!isSignUp)
-              setErrorMsg('')
-              setSuccessMsg('')
-            }}
+        <div className="text-center pt-2">
+          <Link
+            to="/registro"
             className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
           >
-            {isSignUp ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate aquí'}
-          </button>
+            ¿Eres una clínica nueva? Regístrate aquí
+          </Link>
         </div>
 
         {/* Quick Credentials panel (Demo helper) - Only show if Supabase is NOT configured */}
@@ -219,6 +151,5 @@ export default function Login() {
         )}
       </div>
     </div>
-
   )
 }

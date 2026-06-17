@@ -43,7 +43,7 @@ export default function ClientAppointmentList() {
       case 'completada':
         return (
           <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 w-fit">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-650" />
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
             Completada
           </span>
         )
@@ -131,7 +131,7 @@ export default function ClientAppointmentList() {
 
                   <div className="flex flex-col gap-0.5">
                     <span className="text-slate-400 font-medium">Fecha Confirmada</span>
-                    <span className="font-bold text-indigo-650 dark:text-indigo-400">
+                    <span className="font-bold text-indigo-600 dark:text-indigo-400">
                       {appt.confirmed_date || <span className="text-slate-400 font-normal italic">Por confirmar</span>}
                     </span>
                   </div>
@@ -141,7 +141,7 @@ export default function ClientAppointmentList() {
               {appt.assigned_technician_id && (
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                   <span className="text-slate-400 font-medium">Técnico Asignado:</span>
-                  <span className="font-bold flex items-center gap-1.5 text-slate-750 dark:text-slate-300 bg-indigo-50/50 dark:bg-slate-800 py-1 px-2.5 rounded-lg border border-indigo-100/10">
+                  <span className="font-bold flex items-center gap-1.5 text-slate-700 dark:text-slate-300 bg-indigo-50/50 dark:bg-slate-800 py-1 px-2.5 rounded-lg border border-indigo-100/10">
                     <User className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                     {appt.technician?.full_name}
                   </span>

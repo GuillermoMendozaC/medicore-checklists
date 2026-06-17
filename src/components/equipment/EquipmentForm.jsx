@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Save, X } from 'lucide-react'
 
-export default function EquipmentForm({ initialValues = null, onSubmit, onCancel, categories = [], clients = [] }) {
+export default function EquipmentForm({ initialValues = null, onSubmit, onCancel, categories = [], clients = [], hideClientSelector = false }) {
   const [name, setName] = useState(initialValues?.name || '')
   const [categoryId, setCategoryId] = useState(initialValues?.category_id || '')
   const [brand, setBrand] = useState(initialValues?.brand || '')
@@ -64,19 +64,21 @@ export default function EquipmentForm({ initialValues = null, onSubmit, onCancel
           </select>
         </div>
 
-        <div>
-          <label className="custom-label">Propietario / Cliente (Clínica)</label>
-          <select
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
-          >
-            <option value="">-- Sin propietario (Uso Interno) --</option>
-            {clients.map(cli => (
-              <option key={cli.id} value={cli.id}>{cli.name}</option>
-            ))}
-          </select>
-        </div>
+        {!hideClientSelector && (
+          <div>
+            <label className="custom-label">Propietario / Cliente (Clínica)</label>
+            <select
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
+            >
+              <option value="">-- Sin propietario (Uso Interno) --</option>
+              {clients.map(cli => (
+                <option key={cli.id} value={cli.id}>{cli.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="custom-label">Marca</label>

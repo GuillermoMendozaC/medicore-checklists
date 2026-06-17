@@ -234,7 +234,7 @@ export default function ClientList() {
                           client.name
                         )}
                       </td>
-                      <td className="py-4 px-5 text-slate-650 dark:text-slate-400">
+                      <td className="py-4 px-5 text-slate-600 dark:text-slate-400">
                         {editingId === client.id ? (
                           <input
                             type="email"
@@ -253,7 +253,7 @@ export default function ClientList() {
                           )
                         )}
                       </td>
-                      <td className="py-4 px-5 text-slate-650 dark:text-slate-400">
+                      <td className="py-4 px-5 text-slate-600 dark:text-slate-400">
                         {editingId === client.id ? (
                           <input
                             type="text"

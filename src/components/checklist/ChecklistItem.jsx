@@ -156,7 +156,7 @@ export default function ChecklistItem({ item, response, onChange }) {
               </div>
               <div className="text-left">
                 <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wide">Cargada</span>
-                <span className="block text-xs font-bold text-slate-650 dark:text-slate-300 max-w-[120px] truncate">
+                <span className="block text-xs font-bold text-slate-600 dark:text-slate-300 max-w-[120px] truncate">
                   {response.photo_blob?.name || 'evidencia.jpg'}
                 </span>
               </div>
@@ -170,7 +170,7 @@ export default function ChecklistItem({ item, response, onChange }) {
               </button>
             </div>
           ) : (
-            <label className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-slate-600 hover:text-indigo-650 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900 rounded-xl cursor-pointer text-xs font-semibold shadow-sm transition-all duration-200">
+            <label className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 hover:bg-indigo-50 border border-slate-200/80 hover:border-indigo-300 text-slate-600 hover:text-indigo-600 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900 rounded-xl cursor-pointer text-xs font-semibold shadow-sm transition-all duration-200">
               <Camera className="h-3.5 w-3.5" />
               <span>Tomar / Subir Foto</span>
               <input

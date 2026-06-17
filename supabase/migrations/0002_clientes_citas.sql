@@ -71,5 +71,15 @@ create policy "citas segun rol" on appointments for all using (
   or assigned_technician_id = auth.uid()
 );
 
--- Permitir a usuarios autenticados crear su propio perfil durante el registro
 create policy "usuarios crean su propio perfil" on profiles for insert with check (id = auth.uid());
+
+-- Permitir a los clientes insertar y actualizar sus propios equipos
+create policy "clientes insertan sus propios equipos" on equipment for insert with check (
+  (select role from profiles where id = auth.uid()) = 'cliente'
+  and client_id = (select client_id from profiles where id = auth.uid())
+);
+
+create policy "clientes actualizan sus propios equipos" on equipment for update using (
+  (select role from profiles where id = auth.uid()) = 'cliente'
+  and client_id = (select client_id from profiles where id = auth.uid())
+);

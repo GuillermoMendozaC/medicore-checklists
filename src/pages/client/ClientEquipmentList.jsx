@@ -1,14 +1,22 @@
 import React, { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { Link } from 'react-router-dom'
-import { Stethoscope, Search, MapPin, History, Info, Activity } from 'lucide-react'
+import { Stethoscope, Search, MapPin, History, Info, Plus, Edit, ShieldAlert } from 'lucide-react'
+import EquipmentForm from '../../components/equipment/EquipmentForm'
 
 export default function ClientEquipmentList() {
   const { profile } = useAuth()
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Create/Edit form states
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingEquipment, setEditingEquipment] = useState(null)
+  const [errorMsg, setErrorMsg] = useState('')
+
+  // 1. Fetch Client's Equipment List
   const { data: equipmentList, isLoading, isError, error } = useQuery({
     queryKey: ['client_equipment', profile?.client_id],
     queryFn: async () => {
@@ -22,6 +30,56 @@ export default function ClientEquipmentList() {
       return data
     },
     enabled: !!profile?.client_id
+  })
+
+  // 2. Fetch Categories for Form Selection
+  const { data: categories } = useQuery({
+    queryKey: ['equipment_categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment_categories')
+        .select('*')
+        .order('name', { ascending: true })
+      if (error) throw error
+      return data
+    }
+  })
+
+  // 3. Create Equipment Mutation
+  const createMutation = useMutation({
+    mutationFn: async (newEq) => {
+      const { data, error } = await supabase
+        .from('equipment')
+        .insert({
+          ...newEq,
+          client_id: profile?.client_id // Enforce owning client ID
+        })
+        .select()
+      if (error) throw error
+      return data && data[0]
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client_equipment'] })
+    }
+  })
+
+  // 4. Update Equipment Mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }) => {
+      const { data, error } = await supabase
+        .from('equipment')
+        .update({
+          ...updates,
+          client_id: profile?.client_id // Enforce owning client ID
+        })
+        .eq('id', id)
+        .select()
+      if (error) throw error
+      return data && data[0]
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client_equipment'] })
+    }
   })
 
   const filteredEquipment = useMemo(() => {
@@ -38,11 +96,46 @@ export default function ClientEquipmentList() {
     })
   }, [equipmentList, searchTerm])
 
+  const handleOpenCreate = () => {
+    setEditingEquipment(null)
+    setIsFormOpen(true)
+    setErrorMsg('')
+  }
+
+  const handleOpenEdit = (eq) => {
+    setEditingEquipment(eq)
+    setIsFormOpen(true)
+    setErrorMsg('')
+  }
+
+  const handleFormCancel = () => {
+    setIsFormOpen(false)
+    setEditingEquipment(null)
+  }
+
+  const handleFormSubmit = async (formData) => {
+    setErrorMsg('')
+    try {
+      if (editingEquipment) {
+        await updateMutation.mutateAsync({
+          id: editingEquipment.id,
+          updates: formData
+        })
+      } else {
+        await createMutation.mutateAsync(formData)
+      }
+      setIsFormOpen(false)
+      setEditingEquipment(null)
+    } catch (err) {
+      setErrorMsg(err.message || 'Error al guardar el equipo.')
+    }
+  }
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'activo':
         return (
-          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-205 flex items-center gap-1.5 w-fit">
+          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 w-fit">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Operativo
           </span>
@@ -73,7 +166,45 @@ export default function ClientEquipmentList() {
           <h2 className="text-2xl font-black text-slate-800 dark:text-white">Equipos Médicos Registrados</h2>
           <p className="text-sm text-slate-500">Listado de dispositivos de su propiedad y su estado operativo actual.</p>
         </div>
+        {!isFormOpen && (
+          <button
+            onClick={handleOpenCreate}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/30 transition-all duration-200 self-start sm:self-auto text-sm"
+          >
+            <Plus className="h-4.5 w-4.5" />
+            Registrar Equipo
+          </button>
+        )}
       </div>
+
+      {errorMsg && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm font-semibold flex items-center gap-2 animate-shake">
+          <ShieldAlert className="h-5 w-5 flex-shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {/* Slide down form panel */}
+      {isFormOpen && (
+        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-slate-800/80 shadow-md space-y-4 animate-slide-up">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Stethoscope className="h-4 w-4" />
+            </div>
+            <h3 className="font-bold text-slate-800 dark:text-white">
+              {editingEquipment ? `Editar: ${editingEquipment.name}` : 'Registrar Nuevo Equipo'}
+            </h3>
+          </div>
+          
+          <EquipmentForm
+            initialValues={editingEquipment || { client_id: profile?.client_id }}
+            categories={categories || []}
+            onSubmit={handleFormSubmit}
+            onCancel={handleFormCancel}
+            hideClientSelector={true}
+          />
+        </div>
+      )}
 
       {/* Search Bar */}
       <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4">
@@ -99,7 +230,7 @@ export default function ClientEquipmentList() {
         </div>
       ) : filteredEquipment.length === 0 ? (
         <div className="p-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 text-center text-slate-500 shadow-sm">
-          <Info className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-450" />
+          <Info className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-400" />
           No se encontraron equipos clínicos registrados para su cuenta.
         </div>
       ) : (
@@ -116,7 +247,7 @@ export default function ClientEquipmentList() {
                       <h3 className="font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors leading-tight text-base">
                         {eq.name}
                       </h3>
-                      <span className="text-[11px] text-slate-450 font-bold uppercase tracking-wider">
+                      <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
                         {eq.category?.name || 'Sin Categoría'}
                       </span>
                     </div>
@@ -149,13 +280,22 @@ export default function ClientEquipmentList() {
               <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
                 {getStatusBadge(eq.status)}
 
-                <Link
-                  to={`/portal/equipos/${eq.id}/historial`}
-                  className="py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg text-xs flex items-center gap-1 transition-colors"
-                >
-                  <History className="h-3.5 w-3.5" />
-                  Historial
-                </Link>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleOpenEdit(eq)}
+                    className="py-1.5 px-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-450 font-bold rounded-lg text-xs flex items-center gap-1 transition-colors"
+                  >
+                    <Edit className="h-3.5 w-3.5 text-slate-500" />
+                    Editar
+                  </button>
+                  <Link
+                    to={`/portal/equipos/${eq.id}/historial`}
+                    className="py-1.5 px-3 bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg text-xs flex items-center gap-1 transition-colors"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    Historial
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

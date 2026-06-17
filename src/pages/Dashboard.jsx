@@ -640,7 +640,7 @@ export default function Dashboard() {
                         {appt.equipment ? appt.equipment.name : 'Inspección de Equipos General'}
                       </h4>
                       <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
-                        <p className="font-semibold text-indigo-650">Cliente: {appt.client?.name}</p>
+                        <p className="font-semibold text-indigo-600">Cliente: {appt.client?.name}</p>
                         {appt.equipment && (
                           <p>S/N: {appt.equipment.serial_number || 'N/A'} • Ubicación: {appt.equipment.location || 'N/A'}</p>
                         )}

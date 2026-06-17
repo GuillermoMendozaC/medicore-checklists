@@ -7,6 +7,8 @@ import Sidebar from './components/layout/Sidebar'
 
 // Import Pages
 import Login from './pages/Login'
+import Signup from './pages/Signup'
+import PendingApproval from './pages/PendingApproval'
 import Dashboard from './pages/Dashboard'
 import CategoryList from './pages/CategoryList'
 import EquipmentList from './pages/EquipmentList'
@@ -46,8 +48,10 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Route */}
+          {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Signup />} />
+          <Route path="/pendiente" element={<PendingApproval />} />
 
           {/* Admin & Técnico Dashboard */}
           <Route

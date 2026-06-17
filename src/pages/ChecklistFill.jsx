@@ -235,7 +235,7 @@ export default function ChecklistFill() {
             className={`px-4 py-2 rounded-xl transition-all duration-200 ${
               fillMode === 'programada'
                 ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-650 dark:hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
             }`}
           >
             Inspecciones Programadas
@@ -251,7 +251,7 @@ export default function ChecklistFill() {
             className={`px-4 py-2 rounded-xl transition-all duration-200 ${
               fillMode === 'directa'
                 ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-650 dark:hover:text-slate-300'
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
             }`}
           >
             Nueva Inspección Directa
@@ -354,7 +354,7 @@ export default function ChecklistFill() {
 
             <div className="flex justify-between items-start">
               <div>
-                <span className="text-[10px] bg-indigo-650 text-indigo-200 font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/20">
+                <span className="text-[10px] bg-indigo-600 text-indigo-200 font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/20">
                   Dispositivo Evaluado
                 </span>
                 <h3 className="text-xl font-bold mt-1.5">{selectedEquipment.name}</h3>

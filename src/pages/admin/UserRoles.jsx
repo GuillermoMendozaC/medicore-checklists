@@ -31,6 +31,8 @@ export default function UserRoles() {
     }
   })
 
+  const pendingProfiles = React.useMemo(() => profiles?.filter(p => p.role === 'pendiente') || [], [profiles])
+
   // Mutation to update role
   const updateProfileMutation = useMutation({
     mutationFn: async ({ profileId, role, client_id }) => {
@@ -98,6 +100,103 @@ export default function UserRoles() {
         </div>
       )}
 
+      {/* Pending Profiles Highlight Section */}
+      {pendingProfiles.length > 0 && (
+        <div className="p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/15 border border-amber-200 dark:border-amber-900/50 space-y-4 animate-pulse-subtle">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400">
+            <Clock className="h-5 w-5 animate-bounce" />
+            <h3 className="font-bold text-sm uppercase tracking-wider">Cuentas Nuevas Pendientes de Aprobación ({pendingProfiles.length})</h3>
+          </div>
+          <p className="text-xs text-amber-700/80 dark:text-amber-500/80 font-medium">
+            Estos usuarios se registraron recientemente o han sido creados sin rol asignado. Defina su rol y clínica para permitirles el acceso.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingProfiles.map((prof) => {
+              const isEditing = editingId === prof.id
+              return (
+                <div key={prof.id} className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-amber-200/50 dark:border-slate-800 shadow-sm flex flex-col justify-between gap-3 transition-all">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-slate-800 dark:text-white">{prof.full_name}</h4>
+                      <span className="text-[10px] text-slate-405 font-mono block mt-0.5">{prof.id}</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100/50 text-amber-700 border border-amber-200 uppercase tracking-wide">
+                      Pendiente
+                    </span>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 mb-1">Asignar Rol</label>
+                          <select
+                            value={selectedRole}
+                            onChange={(e) => {
+                              setSelectedRole(e.target.value)
+                              if (e.target.value !== 'cliente') {
+                                setSelectedClientId('')
+                              }
+                            }}
+                            className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-850 rounded-lg outline-none focus:border-indigo-500 dark:text-white"
+                          >
+                            <option value="pendiente">Pendiente</option>
+                            <option value="tecnico">Técnico</option>
+                            <option value="cliente">Cliente</option>
+                            <option value="admin">Administrador</option>
+                          </select>
+                        </div>
+                        {selectedRole === 'cliente' && (
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 mb-1">Vincular Clínica</label>
+                            <select
+                              value={selectedClientId}
+                              onChange={(e) => setSelectedClientId(e.target.value)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-slate-50 border border-slate-200 dark:bg-slate-950 dark:border-slate-850 rounded-lg outline-none focus:border-indigo-500 dark:text-white"
+                            >
+                              <option value="">-- Seleccionar clínica --</option>
+                              {clients?.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex justify-end gap-2 text-xs pt-1">
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg text-xs"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => handleSave(prof.id)}
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs flex items-center gap-1 shadow-sm"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                          Aprobar y Guardar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-xs text-slate-400 italic">Aún sin rol de acceso asignado</span>
+                      <button
+                        onClick={() => handleStartEdit(prof)}
+                        className="px-3 py-1.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-lg shadow-sm transition-colors"
+                      >
+                        Asignar Rol / Aprobar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
         {isProfilesLoading || isClientsLoading ? (
           <div className="p-12 flex justify-center items-center">
@@ -146,6 +245,7 @@ export default function UserRoles() {
                             <option value="admin">Administrador</option>
                             <option value="tecnico">Técnico</option>
                             <option value="cliente">Cliente</option>
+                            <option value="pendiente">Pendiente</option>
                           </select>
                         ) : (
                           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
@@ -153,12 +253,16 @@ export default function UserRoles() {
                               ? 'bg-rose-50 text-rose-700 border border-rose-100' 
                               : prof.role === 'tecnico'
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                                : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                : prof.role === 'pendiente'
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                                  : 'bg-blue-50 text-blue-700 border border-blue-100'
                           }`}>
                             {prof.role === 'admin' ? (
                               <Shield className="h-3 w-3" />
                             ) : prof.role === 'tecnico' ? (
                               <PenTool className="h-3 w-3" />
+                            ) : prof.role === 'pendiente' ? (
+                              <Clock className="h-3.5 w-3.5" />
                             ) : (
                               <Building className="h-3 w-3" />
                             )}
@@ -166,7 +270,7 @@ export default function UserRoles() {
                           </span>
                         )}
                       </td>
-                      <td className="py-4 px-5 text-slate-605 dark:text-slate-400">
+                      <td className="py-4 px-5 text-slate-600 dark:text-slate-400">
                         {isEditing ? (
                           selectedRole === 'cliente' ? (
                             <select
@@ -215,7 +319,7 @@ export default function UserRoles() {
                         ) : (
                           <button
                             onClick={() => handleStartEdit(prof)}
-                            className="px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-slate-750 text-indigo-650 dark:text-indigo-400 rounded-lg transition-colors"
+                            className="px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400 rounded-lg transition-colors"
                           >
                             Asignar Rol / Cliente
                           </button>

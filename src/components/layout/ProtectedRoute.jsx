@@ -22,6 +22,10 @@ export default function ProtectedRoute({ children, allowedRoles = null, adminOnl
 
   const role = profile?.role
 
+  if (role === 'pendiente') {
+    return <Navigate to="/pendiente" replace />
+  }
+
   // Handle legacy adminOnly flag
   if (adminOnly && role !== 'admin') {
     if (role === 'cliente') {

@@ -208,7 +208,8 @@ export const AuthProvider = ({ children }) => {
     isLoggedIn: !!user,
     isAdmin: profile?.role === 'admin',
     isCliente: profile?.role === 'cliente',
-    isTecnico: profile?.role === 'tecnico'
+    isTecnico: profile?.role === 'tecnico',
+    isPendiente: profile?.role === 'pendiente'
   }
 
   return (
