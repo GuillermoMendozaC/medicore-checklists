@@ -114,14 +114,21 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="text-center pt-2">
+        <div className="flex flex-col items-center gap-2 pt-2">
           <Link
             to="/registro"
             className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline"
           >
             ¿Eres una clínica nueva? Regístrate aquí
           </Link>
+          <Link
+            to="/registro-tecnico"
+            className="text-xs font-semibold text-indigo-500 hover:text-indigo-700 hover:underline"
+          >
+            ¿Eres técnico? Regístrate aquí de forma individual
+          </Link>
         </div>
+
 
         {/* Quick Credentials panel (Demo helper) - Only show if Supabase is NOT configured */}
         {!import.meta.env.VITE_SUPABASE_URL && (
