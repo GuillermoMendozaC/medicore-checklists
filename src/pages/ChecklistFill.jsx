@@ -7,12 +7,14 @@ import { db } from '../lib/db'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { syncPendingChecklists } from '../lib/sync'
 import { useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function ChecklistFill() {
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   const queryEquipmentId = searchParams.get('equipment_id')
   const queryAppointmentId = searchParams.get('appointment_id')
+  const queryClient = useQueryClient()
 
   // Tab state: 'programada' (scheduled) or 'directa' (on-the-fly)
   const [fillMode, setFillMode] = useState('programada')
@@ -184,7 +186,10 @@ export default function ChecklistFill() {
 
       // 4. Proactively run synchronization in background if online
       if (navigator.onLine) {
-        syncPendingChecklists(user?.id)
+        syncPendingChecklists(user?.id).then(() => {
+          queryClient.invalidateQueries({ queryKey: ['assigned_appointments'] })
+          queryClient.invalidateQueries({ queryKey: ['maintenance_checklists'] })
+        })
       }
     } catch (err) {
       console.error("Error saving checklist:", err)
