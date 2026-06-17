@@ -129,6 +129,26 @@ export async function syncPendingChecklists(userId) {
   console.log("Sincronización: Iniciando carga de checklists pendientes...")
 
   try {
+    // --- SANITIZE STEP ---
+    // Fix any records stuck in Dexie with empty strings for UUID fields.
+    // This can happen if they were saved before the null-coalescing fix.
+    const allCompleted = await db.pending_checklists
+      .where('status').equals('completado').toArray()
+    
+    for (const record of allCompleted) {
+      const needsFix = record.equipment_id === '' || record.template_id === '' || 
+                       record.technician_id === '' || record.appointment_id === ''
+      if (needsFix) {
+        console.log(`Sincronización: Reparando registro con UUIDs vacíos: ${record.id}`)
+        await db.pending_checklists.update(record.id, {
+          equipment_id: record.equipment_id || null,
+          template_id: record.template_id || null,
+          technician_id: record.technician_id || null,
+          appointment_id: record.appointment_id || null
+        })
+      }
+    }
+
     // Find all completed checklists in local queue
     const completedChecklists = await db.pending_checklists
       .where('status')
