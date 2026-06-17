@@ -1,27 +1,35 @@
 import React, { useState } from 'react'
-import { useChecklists } from '../hooks/useChecklists'
-import { useEquipment } from '../hooks/useEquipment'
+import { useParams, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../context/AuthContext'
+import { exportChecklistToPdf } from '../../lib/exportPdf'
 import { 
-  History, 
+  ArrowLeft, 
+  Stethoscope, 
   Calendar, 
-  Search, 
   User, 
-  CheckSquare, 
-  XSquare, 
+  FileDown, 
+  ChevronDown, 
+  ChevronUp, 
   Info,
-  ChevronDown,
-  ChevronUp,
-  FileCheck2,
-  Stethoscope,
-  FileDown
+  Clock
 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { exportChecklistToPdf } from '../lib/exportPdf'
 
-// Sub-component to render detailed item responses for a selected checklist
+// Sub-component to render responses for a checklist (similar to ChecklistHistory)
 function ResponsesList({ checklistId }) {
-  const { useChecklistResponses } = useChecklists()
-  const { data: responses, isLoading, isError } = useChecklistResponses(checklistId)
+  const { data: responses, isLoading, isError } = useQuery({
+    queryKey: ['client_responses', checklistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('checklist_responses')
+        .select('*, template_item:checklist_template_items(*)')
+        .eq('checklist_id', checklistId)
+      if (error) throw error
+      return data
+    },
+    enabled: !!checklistId
+  })
 
   if (isLoading) {
     return (
@@ -79,20 +87,52 @@ function ResponsesList({ checklistId }) {
   )
 }
 
-export default function ChecklistHistory() {
-  const { useChecklistsList } = useChecklists()
-  const { useEquipmentList } = useEquipment()
-
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [selectedEqId, setSelectedEqId] = useState('')
+export default function ClientEquipmentHistory() {
+  const { id } = useParams()
+  const { profile } = useAuth()
+  
   const [expandedId, setExpandedId] = useState(null)
-  const [isExporting, setIsExporting] = useState(null) // holds checklist ID currently exporting
+  const [isExporting, setIsExporting] = useState(null)
+
+  // 1. Fetch Equipment Details
+  const { data: equipment, isLoading: isEqLoading } = useQuery({
+    queryKey: ['client_equipment_detail', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*, category:equipment_categories(*)')
+        .eq('id', id)
+        .single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!id
+  })
+
+  // 2. Fetch Completed Checklists
+  const { data: checklists, isLoading: isChksLoading, isError, error } = useQuery({
+    queryKey: ['client_equipment_checklists', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('maintenance_checklists')
+        .select('*, template:checklist_templates(*), technician:profiles(*)')
+        .eq('equipment_id', id)
+        .eq('status', 'completado')
+        .order('completed_at', { ascending: false })
+      if (error) throw error
+      return data
+    },
+    enabled: !!id
+  })
+
+  const toggleExpand = (chkId) => {
+    setExpandedId(expandedId === chkId ? null : chkId)
+  }
 
   const handleExportPDF = async (chk) => {
     setIsExporting(chk.id)
     try {
-      // 1. Fetch responses for this checklist from Supabase
+      // 1. Fetch responses for this checklist
       const { data: responses, error } = await supabase
         .from('checklist_responses')
         .select('*, template_item:checklist_template_items(*)')
@@ -100,8 +140,21 @@ export default function ChecklistHistory() {
       
       if (error) throw error
 
-      // 2. Generate PDF report
-      await exportChecklistToPdf(chk, responses || [])
+      // Enriched object for PDF generation
+      const enrichedChk = {
+        ...chk,
+        equipment: {
+          name: equipment?.name,
+          brand: equipment?.brand,
+          model: equipment?.model,
+          serial_number: equipment?.serial_number,
+          location: equipment?.location,
+          status: equipment?.status
+        }
+      }
+
+      // 2. Export PDF
+      await exportChecklistToPdf(enrichedChk, responses || [])
     } catch (err) {
       console.error("Error exporting PDF:", err)
       alert("Error al exportar el reporte a PDF: " + err.message)
@@ -110,71 +163,63 @@ export default function ChecklistHistory() {
     }
   }
 
-  // Load completed checklists
-  const { data: checklists, isLoading, isError, error } = useChecklistsList({
-    status: 'completado',
-    equipment_id: selectedEqId || null,
-    start_date: startDate || null,
-    end_date: endDate || null
-  })
-
-  // Load equipment for filters
-  const { data: equipmentList } = useEquipmentList()
-
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id)
-  }
-
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-2xl font-black text-slate-800 dark:text-white">Historial de Mantenimientos</h2>
-        <p className="text-sm text-slate-500">Historial y auditorías de checklists completados</p>
-      </div>
-
-      {/* Date Range & Equipment Filters */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+      <div className="flex items-center gap-3">
+        <Link
+          to="/portal/equipos"
+          className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-500 hover:text-indigo-650 transition-colors"
+          title="Volver"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1">Buscar por Equipo Médico</label>
-          <select
-            value={selectedEqId}
-            onChange={(e) => setSelectedEqId(e.target.value)}
-            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl outline-none focus:bg-white focus:border-indigo-500 dark:text-white cursor-pointer"
-          >
-            <option value="">Todos los equipos</option>
-            {equipmentList?.map(eq => (
-              <option key={eq.id} value={eq.id}>{eq.name} (S/N: {eq.serial_number || 'N/A'})</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" /> Desde fecha
-          </label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl outline-none focus:bg-white focus:border-indigo-500 dark:text-white"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-500 mb-1 flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" /> Hasta fecha
-          </label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full text-xs px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 rounded-xl outline-none focus:bg-white focus:border-indigo-500 dark:text-white"
-          />
+          <h2 className="text-2xl font-black text-slate-800 dark:text-white">Historial de Mantenimientos</h2>
+          <p className="text-sm text-slate-500">
+            {isEqLoading ? 'Cargando información del equipo...' : `Historial para ${equipment?.name}`}
+          </p>
         </div>
       </div>
 
-      {/* Checklist Audit Logs */}
-      {isLoading ? (
+      {/* Equipment Header Info Box */}
+      {equipment && (
+        <div className="p-5 rounded-2xl bg-slate-900 text-white shadow-md space-y-3 relative overflow-hidden">
+          <Stethoscope className="absolute right-0 bottom-0 -mr-6 -mb-6 h-28 w-28 text-white/5 pointer-events-none" />
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] bg-indigo-600/50 text-indigo-200 font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-indigo-500/20">
+                Detalles del Dispositivo
+              </span>
+              <h3 className="text-xl font-bold mt-1.5">{equipment.name}</h3>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">
+              S/N: {equipment.serial_number || 'N/A'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-2 border-t border-white/5">
+            <div className="flex flex-col">
+              <span className="text-slate-400">Marca / Modelo</span>
+              <span className="font-semibold">{equipment.brand || 'N/A'} / {equipment.model || 'N/A'}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400">Categoría</span>
+              <span className="font-semibold">{equipment.category?.name || 'N/A'}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400">Ubicación Física</span>
+              <span className="font-semibold">{equipment.location || 'N/A'}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-slate-400">Estado</span>
+              <span className="font-semibold capitalize">{equipment.status === 'activo' ? 'Operativo' : (equipment.status === 'inactivo' ? 'Inactivo' : 'En Mantención')}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checklists Timeline */}
+      {isChksLoading ? (
         <div className="p-12 flex justify-center items-center">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
         </div>
@@ -184,8 +229,8 @@ export default function ChecklistHistory() {
         </div>
       ) : checklists?.length === 0 ? (
         <div className="p-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 text-center text-slate-500">
-          <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          No se encontraron mantenimientos completados que coincidan con la búsqueda.
+          <Info className="h-8 w-8 mx-auto mb-2 opacity-50 text-slate-450" />
+          No se registran inspecciones de mantenimiento finalizadas para este equipo.
         </div>
       ) : (
         <div className="space-y-4">
@@ -194,39 +239,34 @@ export default function ChecklistHistory() {
             return (
               <div 
                 key={chk.id} 
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow"
+                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-3.5">
-                    <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Stethoscope className="h-5 w-5" />
+                    <div className="h-10 w-10 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Clock className="h-5 w-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-bold text-slate-800 dark:text-white text-base leading-tight">
-                          {chk.equipment?.name}
-                        </h4>
-                        <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold px-2 py-0.5 rounded uppercase">
-                          S/N: {chk.equipment?.serial_number || 'N/A'}
-                        </span>
-                      </div>
+                      <h4 className="font-bold text-slate-800 dark:text-white text-base leading-tight">
+                        {chk.template?.name || 'Inspección de Mantenimiento'}
+                      </h4>
                       <p className="text-xs text-slate-400 mt-1">
-                        Inspección: <span className="font-medium text-slate-600 dark:text-slate-350">{chk.template?.name}</span>
+                        Frecuencia: <span className="font-semibold text-slate-600 dark:text-slate-300 capitalize">{chk.template?.frequency || 'Unica'}</span>
                       </p>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4 text-xs">
                     <div className="flex flex-col text-slate-500">
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Técnico</span>
+                      <span className="text-[10px] text-slate-450 uppercase font-semibold">Técnico Responsable</span>
                       <span className="font-semibold flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                        <User className="h-3 w-3" />
+                        <User className="h-3 w-3 text-slate-400" />
                         {chk.technician?.full_name || 'Desconocido'}
                       </span>
                     </div>
 
                     <div className="flex flex-col text-slate-500">
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold">Completado</span>
+                      <span className="text-[10px] text-slate-450 uppercase font-semibold">Finalizado</span>
                       <span className="font-semibold text-indigo-600 dark:text-indigo-400">
                         {chk.completed_at ? new Date(chk.completed_at).toLocaleDateString() : chk.scheduled_date}
                       </span>
@@ -234,7 +274,7 @@ export default function ChecklistHistory() {
 
                     <button
                       onClick={() => toggleExpand(chk.id)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1 transition-all"
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-450 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-1 transition-all"
                     >
                       <span>{isExpanded ? 'Ocultar' : 'Detalles'}</span>
                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -246,14 +286,14 @@ export default function ChecklistHistory() {
                 {isExpanded && (
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4 animate-slide-up">
                     <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800/40">
-                      <span className="text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Detalles Completos de Inspección</span>
+                      <span className="text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Detalles de la Evaluación</span>
                       <button
                         onClick={() => handleExportPDF(chk)}
                         disabled={isExporting === chk.id}
                         className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all duration-200"
                       >
                         <FileDown className="h-4 w-4" />
-                        <span>{isExporting === chk.id ? 'Generando PDF...' : 'Exportar Reporte (PDF)'}</span>
+                        <span>{isExporting === chk.id ? 'Generando PDF...' : 'Descargar Reporte (PDF)'}</span>
                       </button>
                     </div>
 
@@ -262,7 +302,7 @@ export default function ChecklistHistory() {
                         <span className="font-bold text-[10px] text-slate-400 uppercase tracking-widest block">
                           Observaciones Generales
                         </span>
-                        <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border text-slate-600 dark:text-slate-300 leading-normal italic">
+                        <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border text-slate-650 dark:text-slate-300 leading-normal italic">
                           {chk.general_notes || 'Sin observaciones generales registradas.'}
                         </p>
                       </div>
@@ -276,16 +316,15 @@ export default function ChecklistHistory() {
                             <img 
                               src={chk.signature_url} 
                               alt="Firma Digital" 
-                              className="max-h-[80px] object-contain select-none"
+                              className="max-h-[85px] object-contain select-none"
                             />
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">Sin firma digital disponible.</span>
+                          <span className="text-xs text-slate-400">Firma no disponible.</span>
                         )}
                       </div>
                     </div>
 
-                    {/* Dynamic query of checklist item values */}
                     <div>
                       <span className="font-bold text-[10px] text-slate-400 uppercase tracking-widest block mb-2">
                         Respuestas del Cuestionario

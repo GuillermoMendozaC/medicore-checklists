@@ -14,6 +14,17 @@ import TemplateList from './pages/TemplateList'
 import ChecklistFill from './pages/ChecklistFill'
 import ChecklistHistory from './pages/ChecklistHistory'
 
+// Client Portal Pages
+import ClientEquipmentList from './pages/client/ClientEquipmentList'
+import ClientEquipmentHistory from './pages/client/ClientEquipmentHistory'
+import ClientAppointmentForm from './pages/client/ClientAppointmentForm'
+import ClientAppointmentList from './pages/client/ClientAppointmentList'
+
+// Admin Administration Pages
+import AppointmentRequests from './pages/admin/AppointmentRequests'
+import ClientList from './pages/admin/ClientList'
+import UserRoles from './pages/admin/UserRoles'
+
 function AppLayout({ children }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
@@ -38,11 +49,11 @@ export default function App() {
           {/* Public Route */}
           <Route path="/login" element={<Login />} />
 
-          {/* Protected Routes Wrapper */}
+          {/* Admin & Técnico Dashboard */}
           <Route
             path="/"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
                 <AppLayout>
                   <Dashboard />
                 </AppLayout>
@@ -64,7 +75,7 @@ export default function App() {
           <Route
             path="/equipment"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
                 <AppLayout>
                   <EquipmentList />
                 </AppLayout>
@@ -86,7 +97,7 @@ export default function App() {
           <Route
             path="/fill"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
                 <AppLayout>
                   <ChecklistFill />
                 </AppLayout>
@@ -97,9 +108,88 @@ export default function App() {
           <Route
             path="/history"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'tecnico']}>
                 <AppLayout>
                   <ChecklistHistory />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Client Portal Routes */}
+          <Route
+            path="/portal/equipos"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <AppLayout>
+                  <ClientEquipmentList />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/portal/equipos/:id/historial"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <AppLayout>
+                  <ClientEquipmentHistory />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/portal/citas"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <AppLayout>
+                  <ClientAppointmentList />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/portal/citas/nueva"
+            element={
+              <ProtectedRoute allowedRoles={['cliente']}>
+                <AppLayout>
+                  <ClientAppointmentForm />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin Management Routes */}
+          <Route
+            path="/admin/citas"
+            element={
+              <ProtectedRoute adminOnly>
+                <AppLayout>
+                  <AppointmentRequests />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/clientes"
+            element={
+              <ProtectedRoute adminOnly>
+                <AppLayout>
+                  <ClientList />
+                </AppLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin/roles"
+            element={
+              <ProtectedRoute adminOnly>
+                <AppLayout>
+                  <UserRoles />
                 </AppLayout>
               </ProtectedRoute>
             }

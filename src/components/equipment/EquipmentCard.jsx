@@ -69,6 +69,12 @@ export default function EquipmentCard({ equipment, onEdit, onDelete, isAdmin }) 
               <span className="truncate">{equipment.location || 'N/A'}</span>
             </span>
           </div>
+          {equipment.client && (
+            <div className="flex flex-col col-span-2 border-t border-slate-50 dark:border-slate-800/50 pt-2 mt-1">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Propietario / Clínica</span>
+              <span className="font-bold text-indigo-650 dark:text-indigo-400">{equipment.client.name}</span>
+            </div>
+          )}
         </div>
       </div>
 

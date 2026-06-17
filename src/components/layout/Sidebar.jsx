@@ -8,7 +8,10 @@ import {
   FileCheck2, 
   PenTool, 
   History,
-  X
+  X,
+  Calendar,
+  Users,
+  UserCheck
 } from 'lucide-react'
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -21,7 +24,17 @@ export default function Sidebar({ isOpen, onClose }) {
     { to: '/equipment', label: 'Equipos Médicos', icon: Stethoscope, roles: ['admin', 'tecnico'] },
     { to: '/templates', label: 'Plantillas Checklist', icon: FileCheck2, roles: ['admin'] },
     { to: '/fill', label: 'Llenar Checklist', icon: PenTool, roles: ['admin', 'tecnico'] },
-    { to: '/history', label: 'Historial Checklists', icon: History, roles: ['admin', 'tecnico'] }
+    { to: '/history', label: 'Historial Checklists', icon: History, roles: ['admin', 'tecnico'] },
+    
+    // Client links
+    { to: '/portal/equipos', label: 'Mis Equipos', icon: Stethoscope, roles: ['cliente'] },
+    { to: '/portal/citas', label: 'Mis Citas', icon: Calendar, roles: ['cliente'] },
+    { to: '/portal/citas/nueva', label: 'Solicitar Cita', icon: PenTool, roles: ['cliente'] },
+
+    // Admin extra links
+    { to: '/admin/citas', label: 'Citas Solicitadas', icon: Calendar, roles: ['admin'] },
+    { to: '/admin/clientes', label: 'Clientes (Clínicas)', icon: Users, roles: ['admin'] },
+    { to: '/admin/roles', label: 'Roles de Usuario', icon: UserCheck, roles: ['admin'] }
   ]
 
   const activeStyle = "flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium shadow-lg shadow-indigo-600/30 transition-all duration-200"

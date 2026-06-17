@@ -6,9 +6,13 @@ import confetti from 'canvas-confetti'
 import { db } from '../lib/db'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { syncPendingChecklists } from '../lib/sync'
+import { useSearchParams } from 'react-router-dom'
 
 export default function ChecklistFill() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const queryEquipmentId = searchParams.get('equipment_id')
+  const queryAppointmentId = searchParams.get('appointment_id')
 
   // Tab state: 'programada' (scheduled) or 'directa' (on-the-fly)
   const [fillMode, setFillMode] = useState('programada')
@@ -18,7 +22,19 @@ export default function ChecklistFill() {
   const [selectedEqId, setSelectedEqId] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [clientChecklistId, setClientChecklistId] = useState('')
+  const [appointmentId, setAppointmentId] = useState('')
   const [isCompletedSuccess, setIsCompletedSuccess] = useState(false)
+
+  // Pre-fill states from query params
+  useEffect(() => {
+    if (queryEquipmentId) {
+      setFillMode('directa')
+      setSelectedEqId(queryEquipmentId)
+    }
+    if (queryAppointmentId) {
+      setAppointmentId(queryAppointmentId)
+    }
+  }, [queryEquipmentId, queryAppointmentId])
 
   // --- LOCAL DATA QUERIES (DEXIE) ---
   
@@ -135,7 +151,8 @@ export default function ChecklistFill() {
         status: 'completado',
         general_notes: formData.general_notes,
         signature_blob: formData.signature_blob,
-        signature_url: formData.signature_url // Saved temporarily for previews
+        signature_url: formData.signature_url, // Saved temporarily for previews
+        appointment_id: appointmentId || null // LINKED APPOINTMENT
       })
 
       // 2. Save responses to Dexie
@@ -163,6 +180,7 @@ export default function ChecklistFill() {
       setSelectedEqId('')
       setSelectedTemplateId('')
       setClientChecklistId('')
+      setAppointmentId('')
 
       // 4. Proactively run synchronization in background if online
       if (navigator.onLine) {

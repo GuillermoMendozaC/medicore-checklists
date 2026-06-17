@@ -5,7 +5,7 @@ import { Activity, LogIn, UserPlus, Info, Check } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { login, signUp } = useAuth()
+  const { login, signUp, isLoggedIn, profile } = useAuth()
   
   const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
@@ -17,26 +17,53 @@ export default function Login() {
   const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const [clients, setClients] = useState([])
+  const [clientId, setClientId] = useState('')
+
+  React.useEffect(() => {
+    if (isSignUp) {
+      import('../lib/supabase').then(({ supabase }) => {
+        supabase
+          .from('clients')
+          .select('*')
+          .order('name', { ascending: true })
+          .then(({ data }) => {
+            if (data) setClients(data)
+          })
+      })
+    }
+  }, [isSignUp])
+
+  React.useEffect(() => {
+    if (isLoggedIn && profile) {
+      if (profile.role === 'cliente') {
+        navigate('/portal/equipos')
+      } else {
+        navigate('/')
+      }
+    }
+  }, [isLoggedIn, profile, navigate])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (isSignUp && role === 'cliente' && !clientId) {
+      setErrorMsg('Debe seleccionar su clínica / empresa para registrarse como cliente.')
+      return
+    }
+
     setErrorMsg('')
     setSuccessMsg('')
     setLoading(true)
 
     try {
       if (isSignUp) {
-        await signUp(email, password, fullName, role)
+        await signUp(email, password, fullName, role, clientId || null)
         setSuccessMsg('¡Usuario registrado con éxito! Iniciando sesión...')
-        setTimeout(() => {
-          navigate('/')
-        }, 1500)
       } else {
         await login(email, password)
-        navigate('/')
       }
     } catch (err) {
       setErrorMsg(err.message || 'Error al procesar la autenticación')
-    } finally {
       setLoading(false)
     }
   }
@@ -121,16 +148,41 @@ export default function Login() {
           </div>
 
           {isSignUp && (
-            <div>
-              <label className="custom-label">Rol Organizacional</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
-              >
-                <option value="tecnico">Técnico (Llenar Checklists)</option>
-                <option value="admin">Administrador (Gestionar Equipos/Plantillas)</option>
-              </select>
+            <div className="space-y-4">
+              <div>
+                <label className="custom-label">Rol Organizacional</label>
+                <select
+                  value={role}
+                  onChange={(e) => {
+                    setRole(e.target.value)
+                    if (e.target.value !== 'cliente') {
+                      setClientId('')
+                    }
+                  }}
+                  className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white"
+                >
+                  <option value="tecnico">Técnico (Llenar Checklists)</option>
+                  <option value="admin">Administrador (Gestionar Equipos/Plantillas)</option>
+                  <option value="cliente">Cliente (Clínica/Empresa Externa)</option>
+                </select>
+              </div>
+
+              {role === 'cliente' && (
+                <div>
+                  <label className="custom-label">Asociar Clínica / Empresa *</label>
+                  <select
+                    required
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
+                  >
+                    <option value="">-- Seleccionar clínica --</option>
+                    {clients.map(cli => (
+                      <option key={cli.id} value={cli.id}>{cli.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           )}
 

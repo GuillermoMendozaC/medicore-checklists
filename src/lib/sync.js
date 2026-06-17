@@ -222,7 +222,8 @@ export async function syncPendingChecklists(userId) {
           completed_at: checklist.completed_at,
           status: 'completado',
           general_notes: checklist.general_notes,
-          signature_url: signatureUrl
+          signature_url: signatureUrl,
+          appointment_id: checklist.appointment_id || null
         }
 
         console.log(`Sincronización: Insertando/Actualizando checklist en Supabase...`)
@@ -231,6 +232,18 @@ export async function syncPendingChecklists(userId) {
           .upsert(checklistPayload)
         
         if (chkError) throw chkError
+
+        // Update linked appointment status to 'completada'
+        if (checklist.appointment_id) {
+          console.log(`Sincronización: Actualizando estado de la cita ${checklist.appointment_id} a 'completada'...`)
+          const { error: apptError } = await supabase
+            .from('appointments')
+            .update({ status: 'completada' })
+            .eq('id', checklist.appointment_id)
+          if (apptError) {
+            console.error(`Sincronización: Error al actualizar estado de la cita ${checklist.appointment_id}:`, apptError)
+          }
+        }
 
         // 5. Insert responses to Supabase
         if (processedResponses.length > 0) {

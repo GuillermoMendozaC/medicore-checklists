@@ -4,6 +4,8 @@ import { useChecklists } from '../hooks/useChecklists'
 import { useEquipment } from '../hooks/useEquipment'
 import { useTemplates } from '../hooks/useTemplates'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
 import { 
   ClipboardList, 
   CheckCircle, 
@@ -42,6 +44,21 @@ export default function Dashboard() {
   const { data: equipmentList } = useEquipmentList()
   const { data: templates } = useTemplatesList()
   const { data: technicians } = useTechnicians()
+
+  const { data: assignedAppointments } = useQuery({
+    queryKey: ['assigned_appointments', profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return []
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, client:clients(*), equipment:equipment(*, category:equipment_categories(*))')
+        .eq('assigned_technician_id', profile.id)
+        .eq('status', 'asignada')
+      if (error) throw error
+      return data
+    },
+    enabled: !!profile?.id && profile?.role === 'tecnico'
+  })
   
   const createChecklistMutation = useCreateChecklist()
 
@@ -544,7 +561,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Assigned Pending Checklists Section: Render if not admin, or if admin and has tasks */}
         {(!isAdmin || techPending.length > 0) && (
           <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2 border-b pb-3 border-slate-150 dark:border-slate-850">
@@ -592,8 +608,63 @@ export default function Dashboard() {
             )}
           </div>
         )}
-      </div>
 
+        {/* Assigned Technical Appointments Section (Technicians only) */}
+        {profile?.role === 'tecnico' && (
+          <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center gap-2 border-b pb-3 border-slate-150 dark:border-slate-850">
+              <Calendar className="h-5 w-5 text-indigo-500" />
+              Sus Citas Asignadas Confirmadas
+            </h3>
+
+            {!assignedAppointments || assignedAppointments.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                <p className="font-semibold text-sm">¡Al día! No tiene citas técnicas asignadas pendientes.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {assignedAppointments.map(appt => (
+                  <div key={appt.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/10 hover:border-slate-200 dark:hover:border-slate-850 flex flex-col justify-between gap-4 transition-all">
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded uppercase">
+                          Asignada
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Confirmada: {appt.confirmed_date}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-705 dark:text-white mt-2">
+                        {appt.equipment ? appt.equipment.name : 'Inspección de Equipos General'}
+                      </h4>
+                      <div className="text-[11px] text-slate-500 mt-1 space-y-0.5">
+                        <p className="font-semibold text-indigo-650">Cliente: {appt.client?.name}</p>
+                        {appt.equipment && (
+                          <p>S/N: {appt.equipment.serial_number || 'N/A'} • Ubicación: {appt.equipment.location || 'N/A'}</p>
+                        )}
+                        {appt.description && (
+                          <p className="text-slate-400 italic mt-1 bg-slate-50 dark:bg-slate-950 p-1.5 rounded">
+                            "{appt.description}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Link
+                      to={`/fill?equipment_id=${appt.equipment_id || ''}&appointment_id=${appt.id}`}
+                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-center text-xs flex items-center justify-center gap-1 shadow-sm transition-all"
+                    >
+                      Empezar Inspección / Checklist
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -4,6 +4,8 @@ import { useEquipment } from '../hooks/useEquipment'
 import EquipmentListComp from '../components/equipment/EquipmentList'
 import EquipmentForm from '../components/equipment/EquipmentForm'
 import { Stethoscope, Plus, HelpCircle, ShieldAlert } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '../lib/supabase'
 
 export default function EquipmentList() {
   const { isAdmin } = useAuth()
@@ -17,6 +19,18 @@ export default function EquipmentList() {
 
   const { data: equipmentList, isLoading: isEqLoading, isError: isEqError, error: eqError } = useEquipmentList()
   const { data: categories, isLoading: isCatLoading } = useCategories()
+  
+  const { data: clients } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .order('name', { ascending: true })
+      if (error) throw error
+      return data
+    }
+  })
   
   const createMutation = useCreateEquipment()
   const updateMutation = useUpdateEquipment()
@@ -114,6 +128,7 @@ export default function EquipmentList() {
           <EquipmentForm
             initialValues={editingEquipment}
             categories={categories || []}
+            clients={clients || []}
             onSubmit={handleFormSubmit}
             onCancel={handleFormCancel}
           />

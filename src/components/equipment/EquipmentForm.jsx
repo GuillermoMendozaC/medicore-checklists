@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Save, X } from 'lucide-react'
 
-export default function EquipmentForm({ initialValues = null, onSubmit, onCancel, categories = [] }) {
+export default function EquipmentForm({ initialValues = null, onSubmit, onCancel, categories = [], clients = [] }) {
   const [name, setName] = useState(initialValues?.name || '')
   const [categoryId, setCategoryId] = useState(initialValues?.category_id || '')
   const [brand, setBrand] = useState(initialValues?.brand || '')
@@ -9,6 +9,7 @@ export default function EquipmentForm({ initialValues = null, onSubmit, onCancel
   const [serialNumber, setSerialNumber] = useState(initialValues?.serial_number || '')
   const [location, setLocation] = useState(initialValues?.location || '')
   const [status, setStatus] = useState(initialValues?.status || 'activo')
+  const [clientId, setClientId] = useState(initialValues?.client_id || '')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e) => {
@@ -23,7 +24,8 @@ export default function EquipmentForm({ initialValues = null, onSubmit, onCancel
         model,
         serial_number: serialNumber,
         location,
-        status
+        status,
+        client_id: clientId || null
       })
     } catch (err) {
       console.error(err)
@@ -58,6 +60,20 @@ export default function EquipmentForm({ initialValues = null, onSubmit, onCancel
             <option value="">-- Seleccionar categoría --</option>
             {categories.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="custom-label">Propietario / Cliente (Clínica)</label>
+          <select
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            className="custom-input dark:bg-slate-900 dark:border-slate-800 dark:text-white cursor-pointer"
+          >
+            <option value="">-- Sin propietario (Uso Interno) --</option>
+            {clients.map(cli => (
+              <option key={cli.id} value={cli.id}>{cli.name}</option>
             ))}
           </select>
         </div>

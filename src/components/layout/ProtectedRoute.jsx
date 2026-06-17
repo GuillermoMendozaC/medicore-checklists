@@ -2,7 +2,7 @@ import React from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
-export default function ProtectedRoute({ children, adminOnly = false }) {
+export default function ProtectedRoute({ children, allowedRoles = null, adminOnly = false }) {
   const { isLoggedIn, profile, loading } = useAuth()
 
   if (loading) {
@@ -20,8 +20,21 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
     return <Navigate to="/login" replace />
   }
 
-  if (adminOnly && profile?.role !== 'admin') {
-    // If not admin and requested adminOnly page, redirect to Dashboard
+  const role = profile?.role
+
+  // Handle legacy adminOnly flag
+  if (adminOnly && role !== 'admin') {
+    if (role === 'cliente') {
+      return <Navigate to="/portal/equipos" replace />
+    }
+    return <Navigate to="/" replace />
+  }
+
+  // Handle allowedRoles check
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    if (role === 'cliente') {
+      return <Navigate to="/portal/equipos" replace />
+    }
     return <Navigate to="/" replace />
   }
 

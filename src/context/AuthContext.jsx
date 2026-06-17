@@ -123,7 +123,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false)
   }
 
-  const signUp = async (email, password, fullName, role = 'tecnico') => {
+  const signUp = async (email, password, fullName, role = 'tecnico', client_id = null) => {
     setLoading(true)
     // 1. Auth SignUp
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -133,6 +133,7 @@ export const AuthProvider = ({ children }) => {
         data: {
           full_name: fullName,
           role: role,
+          client_id: client_id
         }
       }
     })
@@ -149,7 +150,8 @@ export const AuthProvider = ({ children }) => {
         .insert({
           id: data.user.id,
           full_name: fullName,
-          role: role
+          role: role,
+          client_id: role === 'cliente' ? client_id : null
         })
 
       if (profileError) {
@@ -160,6 +162,15 @@ export const AuthProvider = ({ children }) => {
     return data
   }
 
+  const reloadProfile = async () => {
+    if (user) {
+      const prof = await fetchProfile(user.id)
+      setProfile(prof)
+      return prof
+    }
+    return null
+  }
+
   const value = {
     user,
     profile,
@@ -167,8 +178,11 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     signUp,
+    reloadProfile,
     isLoggedIn: !!user,
-    isAdmin: profile?.role === 'admin'
+    isAdmin: profile?.role === 'admin',
+    isCliente: profile?.role === 'cliente',
+    isTecnico: profile?.role === 'tecnico'
   }
 
   return (

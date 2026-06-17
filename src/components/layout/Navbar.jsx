@@ -32,8 +32,10 @@ export default function Navbar({ onToggleSidebar }) {
         <div className="hidden sm:flex flex-col items-end">
           <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{profile?.full_name}</span>
           <span className="text-xs text-slate-400 font-medium capitalize flex items-center gap-1.5">
-            <span className={`inline-block h-1.5 w-1.5 rounded-full ${profile?.role === 'admin' ? 'bg-rose-500' : 'bg-emerald-500'}`}></span>
-            {profile?.role === 'admin' ? 'Administrador' : 'Técnico de Soporte'}
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+              profile?.role === 'admin' ? 'bg-rose-500' : profile?.role === 'tecnico' ? 'bg-emerald-500' : 'bg-blue-500'
+            }`}></span>
+            {profile?.role === 'admin' ? 'Administrador' : profile?.role === 'tecnico' ? 'Técnico de Soporte' : 'Cliente Externo'}
           </span>
         </div>
 

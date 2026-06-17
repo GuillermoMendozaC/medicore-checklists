@@ -75,7 +75,7 @@ export function useEquipment() {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('equipment')
-          .select('*, category:equipment_categories(*)')
+          .select('*, category:equipment_categories(*), client:clients(*)')
           .order('name', { ascending: true })
         if (error) throw error
         return data
